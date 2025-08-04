@@ -1,0 +1,143 @@
+{
+  "name": "akeyless-secrets-manager",
+  "displayName": "Akeyless Secrets Manager",
+  "description": "Find and fix hardcoded secrets in your code by integrating directly with Akeyless",
+  "version": "1.0.0",
+  "publisher": "akeyless",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akeyless/akeyless-secrets-manager-cursor"
+  },
+  "icon": "resources/icons/logo_akeyless.png",
+
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "akeyless.refresh",
+        "title": "Akeyless: Refresh Secrets"
+      },
+      {
+        "command": "akeyless.search",
+        "title": "Akeyless: Search Secrets"
+      },
+      {
+        "command": "akeyless.copySecretValue",
+        "title": "Get Value"
+      },
+      {
+        "command": "akeyless.loadMore",
+        "title": "Load More"
+      },
+      {
+        "command": "akeyless.saveToAkeyless",
+        "title": "Save to Akeyless"
+      },
+      {
+        "command": "akeyless.scanHardcodedSecrets",
+        "title": "Akeyless: Scan for Hardcoded Secrets"
+      },
+      {
+        "command": "akeyless.clearSecretHighlights",
+        "title": "Akeyless: Clear Secret Highlights"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "akeyless-secrets",
+          "title": "Akeyless Secrets",
+          "icon": "resources/icons/akeyless-logo.svg"
+        }
+      ]
+    },
+    "views": {
+      "akeyless-secrets": [
+        {
+          "id": "akeyless-secrets-explorer",
+          "name": "Akeyless Security"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "akeyless.refresh",
+          "when": "view == akeyless-secrets-explorer",
+          "group": "navigation"
+        },
+        {
+          "command": "akeyless.search",
+          "when": "view == akeyless-secrets-explorer",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "akeyless.copySecretValue",
+          "when": "view == akeyless-secrets-explorer && viewItem =~ /akeyless-item-STATIC_SECRET/",
+          "group": "inline"
+        },
+        {
+          "command": "akeyless.copySecretValue",
+          "when": "view == akeyless-secrets-explorer && viewItem =~ /akeyless-item-DYNAMIC_SECRET/",
+          "group": "inline"
+        },
+        {
+          "command": "akeyless.copySecretValue",
+          "when": "view == akeyless-secrets-explorer && viewItem =~ /akeyless-item-ROTATED_SECRET/",
+          "group": "inline"
+        },
+        {
+          "command": "akeyless.copySecretValue",
+          "when": "view == akeyless-secrets-explorer && viewItem =~ /akeyless-item-CLASSIC_KEY/",
+          "group": "inline"
+        },
+        {
+          "command": "akeyless.loadMore",
+          "when": "view == akeyless-secrets-explorer && viewItem =~ /akeyless-load-more/",
+          "group": "inline"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "akeyless.saveToAkeyless",
+          "when": "editorHasSelection",
+          "group": "inline"
+        },
+        {
+          "command": "akeyless.scanHardcodedSecrets",
+          "when": "editorTextFocus",
+          "group": "inline"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/node": "16.x",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^5.42.0",
+    "@typescript-eslint/parser": "^5.42.0",
+    "eslint": "^8.26.0",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+} 
