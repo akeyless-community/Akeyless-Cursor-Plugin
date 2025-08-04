@@ -339,13 +339,12 @@ export class SecretScanner {
         const results = new Map<string, HardcodedSecret[]>();
         let totalSecrets = 0;
         
-        logger.info('Scanning entire workspace for hardcoded secrets');
+        logger.info('Scanning current project for hardcoded secrets');
         
-        // More selective file patterns to avoid scanning unnecessary files
-        // Include Go files and other common file types
+        // Only scan the current project files, exclude all library and build directories
         const files = await vscode.workspace.findFiles(
-            '**/*.{js,jsx,ts,tsx,go,json,env,yml,yaml,properties,ini,cfg,conf,env.local,env.development,env.production,txt,md}',
-            '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**'
+            '**/*.{js,jsx,ts,tsx,json,env,yml,yaml,properties,ini,cfg,conf,env.local,env.development,env.production,txt,md}',
+            '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**,**/out/**,**/target/**,**/bin/**,**/obj/**,**/.vscode-test/**,**/coverage/**,**/.nyc_output/**,**/logs/**,**/temp/**,**/tmp/**'
         );
 
         logger.info(`Found ${files.length} files to scan`);
@@ -368,6 +367,106 @@ export class SecretScanner {
 
         logger.info(`Scan complete: Found ${totalSecrets} potential secrets in ${results.size} files`);
         return { results, totalFilesScanned: files.length };
+    }
+
+    /**
+     * Scans only the current active file
+     */
+    static async scanCurrentFile(): Promise<{results: Map<string, HardcodedSecret[]>, totalFilesScanned: number}> {
+        const results = new Map<string, HardcodedSecret[]>();
+        
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor) {
+            logger.info('No active editor found');
+            return { results, totalFilesScanned: 0 };
+        }
+
+        logger.info(`Scanning current file: ${activeEditor.document.fileName}`);
+        
+        try {
+            const secrets = await this.scanDocument(activeEditor.document);
+            if (secrets.length > 0) {
+                results.set(activeEditor.document.fileName, secrets);
+                logger.info(`Found ${secrets.length} potential secrets in current file`);
+            } else {
+                logger.info('No secrets found in current file');
+            }
+        } catch (error) {
+            logger.error(`❌ Error scanning current file:`, error);
+        }
+
+        return { results, totalFilesScanned: 1 };
+    }
+
+    /**
+     * Scans only the current project directory (excludes libraries)
+     */
+    static async scanCurrentProject(): Promise<{results: Map<string, HardcodedSecret[]>, totalFilesScanned: number}> {
+        const results = new Map<string, HardcodedSecret[]>();
+        let totalSecrets = 0;
+        
+        logger.info('Scanning current project directory for hardcoded secrets');
+        
+        // Get the workspace root
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceRoot) {
+            logger.error('No workspace root found');
+            return { results, totalFilesScanned: 0 };
+        }
+
+        // Only scan files in the current project, exclude all library directories
+        const files = await vscode.workspace.findFiles(
+            '**/*.{js,jsx,ts,tsx,json,env,yml,yaml,properties,ini,cfg,conf,env.local,env.development,env.production,txt,md}',
+            '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**,**/out/**,**/target/**,**/bin/**,**/obj/**,**/.vscode-test/**,**/logs/**,**/temp/**,**/tmp/**,**/package-lock.json,**/yarn.lock'
+        );
+
+        // Additional filter to exclude node_modules and other library files
+        const filteredFiles = files.filter(file => {
+            const filePath = file.fsPath.toLowerCase();
+            const shouldExclude = filePath.includes('node_modules') || 
+                   filePath.includes('dist') || 
+                   filePath.includes('build') || 
+                   filePath.includes('.git') || 
+                   filePath.includes('coverage') || 
+                   filePath.includes('vendor') || 
+                   filePath.includes('out') || 
+                   filePath.includes('target') || 
+                   filePath.includes('bin') || 
+                   filePath.includes('obj') || 
+                   filePath.includes('.vscode-test') || 
+                   filePath.includes('logs') || 
+                   filePath.includes('temp') || 
+                   filePath.includes('tmp') ||
+                   filePath.endsWith('package-lock.json') ||
+                   filePath.endsWith('yarn.lock');
+            
+            if (shouldExclude) {
+                logger.debug(`Excluding library file: ${vscode.workspace.asRelativePath(file.fsPath)}`);
+            }
+            
+            return !shouldExclude;
+        });
+
+        logger.info(`Found ${files.length} total files, filtered to ${filteredFiles.length} project files to scan`);
+
+        // Scan files sequentially
+        for (const file of filteredFiles) {
+            try {
+                const document = await vscode.workspace.openTextDocument(file);
+                const secrets = await this.scanDocument(document);
+                
+                if (secrets.length > 0) {
+                    results.set(file.fsPath, secrets);
+                    totalSecrets += secrets.length;
+                    logger.debug(`Found ${secrets.length} secrets in ${vscode.workspace.asRelativePath(file.fsPath)}`);
+                }
+            } catch (error) {
+                logger.error(`❌ Error scanning file ${file.fsPath}:`, error);
+            }
+        }
+
+        logger.info(`Project scan complete: Found ${totalSecrets} potential secrets in ${results.size} files`);
+        return { results, totalFilesScanned: filteredFiles.length };
     }
 
     /**

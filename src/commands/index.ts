@@ -130,7 +130,7 @@ export class CommandManager {
             logger.info('Scan hardcoded secrets command triggered');
             
             // Show progress notification
-            vscode.window.showInformationMessage('Scanning for hardcoded secrets...');
+            vscode.window.showInformationMessage('Scanning current project for hardcoded secrets...');
             
             // Configure scanner for development environment
             SecretScanner.configure({
@@ -139,8 +139,8 @@ export class CommandManager {
                 minEntropy: 3.0
             });
             
-            // Always scan entire workspace
-            const scanResult = await SecretScanner.scanWorkspace();
+            // Scan only the current project (excludes libraries)
+            const scanResult = await SecretScanner.scanCurrentProject();
             const workspaceResults = scanResult.results;
             const totalFilesScanned = scanResult.totalFilesScanned;
             const secrets = Array.from(workspaceResults.values()).flat();
