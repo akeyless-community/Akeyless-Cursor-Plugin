@@ -2,18 +2,34 @@
   "name": "akeyless-secrets-manager",
   "displayName": "Akeyless Secrets Manager",
   "description": "Find and fix hardcoded secrets in your code by integrating directly with Akeyless",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "akeyless",
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/akeyless/akeyless-secrets-manager-cursor"
+    "url": "https://github.com/akeyless-community/Akeyless-Cursor-Plugin"
   },
   "icon": "resources/icons/logo_akeyless.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.74.0"
   },
   "categories": [
+    "Security",
     "Other"
+  ],
+  "keywords": [
+    "akeyless",
+    "secrets",
+    "security",
+    "vault",
+    "password",
+    "api-key",
+    "credentials",
+    "secret-management"
   ],
   "activationEvents": [
     "onStartupFinished"
