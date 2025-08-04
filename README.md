@@ -11,12 +11,12 @@ The Akeyless Secrets Manager extension brings enterprise-grade secret management
 ### **Automatic Secret Detection**
 Scans your code and highlights potential secrets as you type.
 
-![Secret Detection Demo](https://github.com/akeyless-community/Akeyless_Secret_Manager_For_Cursor/blob/main/resources/gifs/scan_for_secrets.gif)
+![Secret Detection Demo](https://github.com/akeyless-community/Akeyless-Cursor-Plugin/blob/main/resources/gifs/scan_for_secrets.gif)
 
 ### **Save to Akeyless**
 Right-click on a highlighted secret to move it securely to your Akeyless vault.
 
-![Save to Akeyless Demo](https://github.com/akeyless-community/Akeyless_Secret_Manager_For_Cursor/blob/main/resources/gifs/save_secrets_to_akeyless.gif)
+![Save to Akeyless Demo](https://github.com/akeyless-community/Akeyless-Cursor-Plugin/blob/main/resources/gifs/save_secrets_to_akeyless.gif)
 
 ### **Integrated Experience**
 View alerts in the "Problems" panel and manage all your Akeyless secrets from a dedicated sidebar within Cursor.
