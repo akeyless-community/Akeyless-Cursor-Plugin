@@ -96,6 +96,16 @@ Click the Akeyless icon in the sidebar to browse, search, and copy secrets witho
 
 This extension is part of the Akeyless Secret Management platform. For more information about Akeyless and our enterprise secret management solutions, visit [akeyless.io](https://akeyless.io/).
 
+## Contributing and Feedback
+
+Akeyless Secrets Manager for Cursor is an open source project maintained by the Akeyless community.
+
+**Found a bug or have feedback?** Please [file a new issue](https://github.com/akeyless-community/Akeyless-Cursor-Plugin/issues/new) to help us improve the extension.
+
+**Want to contribute?** We welcome contributions! Start by [browsing existing issues](https://github.com/akeyless-community/Akeyless-Cursor-Plugin/issues) or [creating a new one](https://github.com/akeyless-community/Akeyless-Cursor-Plugin/issues/new) to discuss your ideas. Check out our [development guide](DEVELOPMENT.md) for setup instructions.
+
+**Repository**: [Akeyless-Cursor-Plugin on GitHub](https://github.com/akeyless-community/Akeyless-Cursor-Plugin)
+
 ---
 
 **Start securing your code today with Akeyless Secrets Manager for Cursor!** 
