@@ -3,7 +3,7 @@
   "displayName": "Akeyless Secrets Manager",
   "description": "Find and fix hardcoded secrets in your code by integrating directly with Akeyless",
   "version": "1.0.1",
-  "publisher": "akeyless",
+  "publisher": "Akeyless",
   "license": "MIT",
   "repository": {
     "type": "git",
