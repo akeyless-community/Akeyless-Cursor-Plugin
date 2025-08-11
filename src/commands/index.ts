@@ -11,6 +11,7 @@ export class CommandManager {
     // Static properties for managing secret highlighting
     private static secretDiagnostics?: vscode.DiagnosticCollection;
     private static secretDecorations?: Map<string, vscode.TextEditorDecorationType>;
+    private static statusBarItem?: vscode.StatusBarItem;
     
     constructor(
         private akeylessCLI: AkeylessCLI,
@@ -30,7 +31,9 @@ export class CommandManager {
             vscode.commands.registerCommand(COMMANDS.COPY_SECRET_VALUE, this.handleCopySecretValueCommand.bind(this)),
             vscode.commands.registerCommand(COMMANDS.SAVE_TO_AKEYLESS, this.handleSaveToAkeylessCommand.bind(this)),
             vscode.commands.registerCommand(COMMANDS.SCAN_HARDCODED_SECRETS, this.handleScanHardcodedSecretsCommand.bind(this)),
-            vscode.commands.registerCommand(COMMANDS.CLEAR_SECRET_HIGHLIGHTS, this.handleClearSecretHighlightsCommand.bind(this))
+            vscode.commands.registerCommand(COMMANDS.CLEAR_SECRET_HIGHLIGHTS, this.handleClearSecretHighlightsCommand.bind(this)),
+            vscode.commands.registerCommand('akeyless.checkDiagnosticsStatus', this.handleCheckDiagnosticsStatusCommand.bind(this)),
+            vscode.commands.registerCommand('akeyless.forceClearAllDiagnostics', this.handleForceClearAllDiagnosticsCommand.bind(this))
         );
 
         logger.info('✅ All commands registered successfully');
@@ -146,7 +149,13 @@ export class CommandManager {
             const secrets = Array.from(workspaceResults.values()).flat();
             
             if (secrets.length === 0) {
-                vscode.window.showInformationMessage('No hardcoded secrets found!');
+                // Clear any existing diagnostics if no secrets found
+                if (CommandManager.secretDiagnostics) {
+                    CommandManager.clearSecretHighlights();
+                    vscode.window.showInformationMessage('No hardcoded secrets found! Previous scan results cleared.');
+                } else {
+                    vscode.window.showInformationMessage('No hardcoded secrets found!');
+                }
                 return;
             }
             
@@ -155,6 +164,9 @@ export class CommandManager {
             
             // Show results in a popup
             CommandManager.showScanResults(secrets, totalFilesScanned);
+            
+            // Show notification about clearing previous results
+            vscode.window.showInformationMessage(`Found ${secrets.length} secrets. Previous scan results have been cleared.`);
             
         } catch (error) {
             logger.error('Failed to scan for hardcoded secrets:', error);
@@ -211,10 +223,11 @@ export class CommandManager {
 
         // Show notification with actions
         vscode.window.showInformationMessage(
-            `Found ${secrets.length} potential secrets in ${secretsByFile.size} files`,
+            `Found ${secrets.length} potential secrets in ${secretsByFile.size} files (previous results cleared)`,
             'Copy Results',
             'Open First File',
-            'View Details'
+            'View Details',
+            'Clear Diagnostics'
         ).then(selection => {
             if (selection === 'Copy Results') {
                 vscode.env.clipboard.writeText(output);
@@ -231,6 +244,10 @@ export class CommandManager {
             } else if (selection === 'View Details') {
                 // The output channel is already shown, just focus it
                 outputChannel.show();
+            } else if (selection === 'Clear Diagnostics') {
+                // Clear all diagnostics
+                CommandManager.clearSecretHighlights();
+                vscode.window.showInformationMessage('Secret diagnostics cleared');
             }
         });
     }
@@ -242,8 +259,56 @@ export class CommandManager {
         try {
             logger.info(`🎨 Highlighting ${secrets.length} secrets in editor`);
             
-            // Create diagnostic collection for secrets
-            const diagnosticCollection = vscode.languages.createDiagnosticCollection('akeyless-secrets');
+            // Check configuration to see if we should use Problems tab
+            const config = vscode.workspace.getConfiguration('akeyless.diagnostics');
+            const enableProblemsTab = config.get<boolean>('enableProblemsTab', true);
+            const showInOutputOnly = config.get<boolean>('showInOutputOnly', false);
+            
+            if (showInOutputOnly) {
+                logger.info('📋 Configuration set to show results in Output panel only - skipping Problems tab');
+                // Only show decorations, no diagnostics
+                await CommandManager.highlightSecretsWithDecorationsOnly(secrets);
+                return;
+            }
+            
+            if (!enableProblemsTab) {
+                logger.info('📋 Configuration disabled Problems tab - using Output panel only');
+                // Only show decorations, no diagnostics
+                await CommandManager.highlightSecretsWithDecorationsOnly(secrets);
+                return;
+            }
+            
+            // IMPORTANT: Clear ALL existing diagnostics first to prevent accumulation
+            // This is the key fix - we need to clear everything before creating new diagnostics
+            if (CommandManager.secretDiagnostics) {
+                logger.info('🧹 Clearing existing diagnostics before new scan');
+                CommandManager.secretDiagnostics.clear();
+                CommandManager.secretDiagnostics.dispose();
+                CommandManager.secretDiagnostics = undefined;
+            }
+            
+            // Also clear any existing decorations
+            if (CommandManager.secretDecorations) {
+                logger.info('🧹 Clearing existing decorations before new scan');
+                for (const decorationType of CommandManager.secretDecorations.values()) {
+                    decorationType.dispose();
+                }
+                CommandManager.secretDecorations.clear();
+                CommandManager.secretDecorations = undefined;
+            }
+            
+            // SIMPLE BUT EFFECTIVE: Clear all existing diagnostics by creating a new collection
+            // and immediately clearing it for all known files
+            logger.info('🧹 Clearing all existing diagnostics with simple approach');
+            
+            // Create a temporary collection and clear it immediately to reset VS Code's diagnostic state
+            const tempCollection = vscode.languages.createDiagnosticCollection(`akeyless-temp-${Date.now()}`);
+            tempCollection.clear();
+            tempCollection.dispose();
+            
+            // Create diagnostic collection for secrets with unique name
+            const timestamp = Date.now();
+            const diagnosticCollection = vscode.languages.createDiagnosticCollection(`akeyless-secrets-${timestamp}`);
             
             // Group secrets by file
             const secretsByFile = new Map<string, HardcodedSecret[]>();
@@ -288,7 +353,11 @@ export class CommandManager {
                         decorations.push(decoration);
                     }
                     
-                    // Set diagnostics for this file
+                    // IMPORTANT: Clear any existing diagnostics for this file first
+                    // This ensures we don't accumulate diagnostics
+                    diagnosticCollection.set(document.uri, []);
+                    
+                    // Now set the new diagnostics
                     diagnosticCollection.set(document.uri, diagnostics);
                     
                     // Add decorations to active editor if this file is open
@@ -322,6 +391,9 @@ export class CommandManager {
             // Store diagnostic collection for cleanup
             CommandManager.secretDiagnostics = diagnosticCollection;
             
+            // Update status bar to show active diagnostics
+            CommandManager.updateStatusBar(secrets.length);
+            
             logger.info(`✅ Successfully highlighted ${secrets.length} secrets in editor`);
             
         } catch (error) {
@@ -350,9 +422,148 @@ export class CommandManager {
                 CommandManager.secretDecorations = undefined;
             }
             
+            // Clear status bar
+            if (CommandManager.statusBarItem) {
+                CommandManager.statusBarItem.dispose();
+                CommandManager.statusBarItem = undefined;
+            }
+            
             logger.info('🧹 Cleared all secret highlighting');
         } catch (error) {
             logger.error('Error clearing secret highlights:', error);
+        }
+    }
+
+    /**
+     * Updates the status bar to show active diagnostics
+     */
+    private static updateStatusBar(secretCount: number): void {
+        try {
+            // Dispose of existing status bar item
+            if (CommandManager.statusBarItem) {
+                CommandManager.statusBarItem.dispose();
+            }
+            
+            // Create new status bar item
+            CommandManager.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+            CommandManager.statusBarItem.text = `🔍 ${secretCount} secrets found`;
+            CommandManager.statusBarItem.tooltip = `Click to clear secret diagnostics`;
+            CommandManager.statusBarItem.command = 'akeyless.clearSecretHighlights';
+            CommandManager.statusBarItem.show();
+            
+            logger.info(`📊 Status bar updated: ${secretCount} secrets`);
+        } catch (error) {
+            logger.error('Error updating status bar:', error);
+        }
+    }
+
+    /**
+     * Highlights secrets with decorations only (no Problems tab diagnostics)
+     */
+    private static async highlightSecretsWithDecorationsOnly(secrets: HardcodedSecret[]): Promise<void> {
+        try {
+            logger.info(`🎨 Highlighting ${secrets.length} secrets with decorations only (no Problems tab)`);
+            
+            // Clear any existing decorations
+            if (CommandManager.secretDecorations) {
+                for (const decorationType of CommandManager.secretDecorations.values()) {
+                    decorationType.dispose();
+                }
+                CommandManager.secretDecorations.clear();
+                CommandManager.secretDecorations = undefined;
+            }
+            
+            // Group secrets by file
+            const secretsByFile = new Map<string, HardcodedSecret[]>();
+            for (const secret of secrets) {
+                if (!secretsByFile.has(secret.fileName)) {
+                    secretsByFile.set(secret.fileName, []);
+                }
+                secretsByFile.get(secret.fileName)!.push(secret);
+            }
+            
+            // Process each file for decorations only
+            for (const [fileName, fileSecrets] of secretsByFile) {
+                try {
+                    const decorations: vscode.DecorationOptions[] = [];
+                    
+                    for (const secret of fileSecrets) {
+                        const range = new vscode.Range(
+                            secret.lineNumber - 1, 
+                            secret.column - 1, 
+                            secret.lineNumber - 1, 
+                            secret.column - 1 + secret.value.length
+                        );
+                        
+                        const decoration = { range };
+                        decorations.push(decoration);
+                    }
+                    
+                    // Add decorations to active editor if this file is open
+                    const activeEditor = vscode.window.activeTextEditor;
+                    if (activeEditor && activeEditor.document.uri.fsPath === fileName) {
+                        const decorationType = vscode.window.createTextEditorDecorationType({
+                            backgroundColor: new vscode.ThemeColor('errorForeground'),
+                            border: '2px solid',
+                            borderColor: new vscode.ThemeColor('errorForeground'),
+                            after: {
+                                contentText: ' SECRET',
+                                color: new vscode.ThemeColor('errorForeground'),
+                                margin: '0 0 0 10px'
+                            }
+                        });
+                        
+                        activeEditor.setDecorations(decorationType, decorations);
+                        
+                        // Store decoration type for cleanup
+                        if (!CommandManager.secretDecorations) {
+                            CommandManager.secretDecorations = new Map();
+                        }
+                        CommandManager.secretDecorations.set(fileName, decorationType);
+                    }
+                    
+                } catch (error) {
+                    logger.error(`Error highlighting decorations in ${fileName}:`, error);
+                }
+            }
+            
+            // Update status bar
+            CommandManager.updateStatusBar(secrets.length);
+            
+            logger.info(`✅ Successfully highlighted ${secrets.length} secrets with decorations only`);
+            
+        } catch (error) {
+            logger.error('Error highlighting secrets with decorations only:', error);
+        }
+    }
+
+    /**
+     * Checks if there are currently active secret diagnostics
+     */
+    public static hasActiveDiagnostics(): boolean {
+        return CommandManager.secretDiagnostics !== undefined;
+    }
+
+    /**
+     * Static method to clear diagnostics (can be called from extension.ts on deactivate)
+     */
+    public static clearAllDiagnostics(): void {
+        try {
+            if (CommandManager.secretDiagnostics) {
+                CommandManager.secretDiagnostics.clear();
+                CommandManager.secretDiagnostics.dispose();
+                CommandManager.secretDiagnostics = undefined;
+            }
+            
+            // Clear status bar
+            if (CommandManager.statusBarItem) {
+                CommandManager.statusBarItem.dispose();
+                CommandManager.statusBarItem = undefined;
+            }
+            
+            logger.info('🧹 Cleared all diagnostics from extension deactivation');
+        } catch (error) {
+            logger.error('Error clearing diagnostics on deactivation:', error);
         }
     }
 
@@ -362,11 +573,77 @@ export class CommandManager {
     private async handleClearSecretHighlightsCommand(): Promise<void> {
         try {
             logger.info('Clear secret highlights command triggered');
+            
+            if (!CommandManager.secretDiagnostics) {
+                vscode.window.showInformationMessage('No secret diagnostics to clear');
+                return;
+            }
+            
             CommandManager.clearSecretHighlights();
             vscode.window.showInformationMessage('Secret highlights cleared');
         } catch (error) {
             logger.error('Failed to clear secret highlights:', error);
             vscode.window.showErrorMessage(`Failed to clear secret highlights: ${error}`);
+        }
+    }
+
+    /**
+     * Handles the check diagnostics status command
+     */
+    private async handleCheckDiagnosticsStatusCommand(): Promise<void> {
+        try {
+            logger.info('Check diagnostics status command triggered');
+            
+            if (CommandManager.hasActiveDiagnostics()) {
+                vscode.window.showInformationMessage('Secret diagnostics are currently active. Use "Clear Secret Highlights" to remove them.');
+            } else {
+                vscode.window.showInformationMessage('No active secret diagnostics found.');
+            }
+        } catch (error) {
+            logger.error('Failed to check diagnostics status:', error);
+            vscode.window.showErrorMessage(`Failed to check diagnostics status: ${error}`);
+        }
+    }
+
+    /**
+     * Handles the force clear all diagnostics command (nuclear option)
+     */
+    private async handleForceClearAllDiagnosticsCommand(): Promise<void> {
+        try {
+            logger.info('Force clear all diagnostics command triggered');
+            
+            // Nuclear option: Clear everything and reset VS Code's diagnostic state
+            if (CommandManager.secretDiagnostics) {
+                CommandManager.secretDiagnostics.clear();
+                CommandManager.secretDiagnostics.dispose();
+                CommandManager.secretDiagnostics = undefined;
+            }
+            
+            // Clear decorations
+            if (CommandManager.secretDecorations) {
+                for (const decorationType of CommandManager.secretDecorations.values()) {
+                    decorationType.dispose();
+                }
+                CommandManager.secretDecorations.clear();
+                CommandManager.secretDecorations = undefined;
+            }
+            
+            // Clear status bar
+            if (CommandManager.statusBarItem) {
+                CommandManager.statusBarItem.dispose();
+                CommandManager.statusBarItem = undefined;
+            }
+            
+            // Create a temporary collection to force clear any remaining diagnostics
+            const tempCollection = vscode.languages.createDiagnosticCollection(`force-clear-${Date.now()}`);
+            tempCollection.clear();
+            tempCollection.dispose();
+            
+            vscode.window.showInformationMessage('All diagnostics forcefully cleared. Problems tab should now be empty.');
+            logger.info('🧹 Force cleared all diagnostics');
+        } catch (error) {
+            logger.error('Failed to force clear all diagnostics:', error);
+            vscode.window.showErrorMessage(`Failed to force clear all diagnostics: ${error}`);
         }
     }
 

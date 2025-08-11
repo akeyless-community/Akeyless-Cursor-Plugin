@@ -38,4 +38,12 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
     logger.info('👋 Akeyless Secrets Manager extension deactivated');
+    
+    // Clean up any remaining diagnostics and decorations
+    try {
+        CommandManager.clearAllDiagnostics();
+        logger.info('🧹 Cleanup completed on deactivation');
+    } catch (error) {
+        logger.error('❌ Error during cleanup on deactivation:', error);
+    }
 } 

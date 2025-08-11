@@ -83,6 +83,44 @@ Click the Akeyless icon in the sidebar to browse, search, and copy secrets witho
 - Search across your entire vault
 - Copy values with one click
 
+### **Controlling Diagnostic Behavior**
+The extension shows detected secrets in the "Problems" tab. To control this behavior:
+
+- **Automatic Cleanup**: Each new scan automatically clears previous results
+- **Manual Clear**: Use "Akeyless: Clear Secret Highlights" to remove diagnostics
+- **Status Bar**: Shows active diagnostics count with quick clear option
+- **Extension Deactivation**: Automatically cleans up all diagnostics
+
+**Note**: If you see accumulated problems in the Problems tab, run the scanner again or use the clear command to reset them.
+
+### **Configuration Options (NEW!)**
+You can now control diagnostic behavior through VS Code settings:
+
+1. **Open Settings**: `Ctrl+,` (or `Cmd+,` on Mac)
+2. **Search for "akeyless"**
+3. **Configure these options**:
+   - `akeyless.diagnostics.enableProblemsTab`: Enable/disable Problems tab (default: true)
+   - `akeyless.diagnostics.autoClearOnNewScan`: Auto-clear on new scans (default: true)
+   - `akeyless.diagnostics.showInOutputOnly`: Show results only in Output panel (default: false)
+
+**Recommended for accumulation issues**: Set `akeyless.diagnostics.showInOutputOnly` to `true`
+
+## Troubleshooting
+
+### **Problems Tab Shows Accumulated Results**
+If you see multiple scan results accumulating in the Problems tab:
+
+1. **Run a new scan**: This automatically clears previous results
+2. **Use Clear Command**: Press `Ctrl+Shift+P` and run "Akeyless: Clear Secret Highlights"
+3. **Force Clear All**: Press `Ctrl+Shift+P` and run "akeyless.forceClearAllDiagnostics" (nuclear option)
+4. **Check Status Bar**: Look for the diagnostic count indicator
+5. **Restart Extension**: Reload the window if issues persist
+
+### **No Secrets Found After Scan**
+- Check that you're scanning the correct project directory
+- Verify file types are supported (JS, TS, JSON, ENV, YAML, etc.)
+- Ensure the scanner is configured for your environment
+
 
 
 
