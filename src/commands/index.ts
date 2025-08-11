@@ -33,7 +33,8 @@ export class CommandManager {
             vscode.commands.registerCommand(COMMANDS.SCAN_HARDCODED_SECRETS, this.handleScanHardcodedSecretsCommand.bind(this)),
             vscode.commands.registerCommand(COMMANDS.CLEAR_SECRET_HIGHLIGHTS, this.handleClearSecretHighlightsCommand.bind(this)),
             vscode.commands.registerCommand('akeyless.checkDiagnosticsStatus', this.handleCheckDiagnosticsStatusCommand.bind(this)),
-            vscode.commands.registerCommand('akeyless.forceClearAllDiagnostics', this.handleForceClearAllDiagnosticsCommand.bind(this))
+            vscode.commands.registerCommand('akeyless.forceClearAllDiagnostics', this.handleForceClearAllDiagnosticsCommand.bind(this)),
+            vscode.commands.registerCommand('akeyless.generateSecretName', this.handleGenerateSecretNameCommand.bind(this))
         );
 
         logger.info('✅ All commands registered successfully');
@@ -86,23 +87,54 @@ export class CommandManager {
             const confirmText = await vscode.window.showInputBox({
                 prompt: 'Confirm the text to save (you can edit if needed)',
                 placeHolder: 'Selected text will appear here',
-                value: selectedText
+                value: selectedText,
+                validateInput: (input) => {
+                    if (!input || input.trim() === '') {
+                        return 'Text to save cannot be empty.';
+                    }
+                    if (input.trim().length < 1) {
+                        return 'Text to save must contain at least 1 character.';
+                    }
+                    return null; // Valid input
+                }
             });
             
             if (!confirmText) {
-                logger.info('❌ User cancelled text confirmation');
+                logger.info('User cancelled text confirmation');
                 return;
             }
             
-            // Prompt for secret name
+            // Additional validation after input
+            if (!confirmText.trim()) {
+                vscode.window.showErrorMessage('Text to save cannot be empty. Please provide valid content.');
+                return;
+            }
+            
+            // Generate a suggested name format for guidance (but don't pre-fill)
+            const fileName = editor.document.fileName.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'secret';
+            const suggestedFormat = `/secrets/${fileName}-${Date.now()}`;
+            
+            // Prompt for secret name (empty by default)
             const secretName = await vscode.window.showInputBox({
-                prompt: 'Enter a name for this secret in Akeyless',
+                prompt: `Enter a name for this secret in Akeyless`,
                 placeHolder: 'e.g., /my-project/api-key',
-                value: `/secrets/${editor.document.fileName.split('/').pop()?.replace(/\.[^/.]+$/, '')}-${Date.now()}`
+                value: '', // Empty by default - no auto-generated name
+                validateInput: (input) => {
+                    if (!input || input.trim() === '') {
+                        return 'Please provide a secret name.';
+                    }
+                    return null; // Valid input - any non-empty name is accepted
+                }
             });
             
             if (!secretName) {
-                logger.info('❌ User cancelled secret name input');
+                logger.info('User cancelled secret name input');
+                return;
+            }
+            
+            // Additional validation after input
+            if (!secretName.trim()) {
+                vscode.window.showErrorMessage('Secret name cannot be empty. Please provide a valid name.');
                 return;
             }
             
@@ -644,6 +676,33 @@ export class CommandManager {
         } catch (error) {
             logger.error('Failed to force clear all diagnostics:', error);
             vscode.window.showErrorMessage(`Failed to force clear all diagnostics: ${error}`);
+        }
+    }
+
+    /**
+     * Handles the generate secret name command
+     */
+    private async handleGenerateSecretNameCommand(): Promise<void> {
+        try {
+            logger.info('Generate secret name command triggered');
+            
+            const activeEditor = vscode.window.activeTextEditor;
+            if (!activeEditor) {
+                vscode.window.showErrorMessage('No active text editor found');
+                return;
+            }
+            
+            const fileName = activeEditor.document.fileName.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'secret';
+            const generatedName = `/secrets/${fileName}-${Date.now()}`;
+            
+            // Copy the generated name to clipboard
+            await vscode.env.clipboard.writeText(generatedName);
+            
+            vscode.window.showInformationMessage(`Generated secret name copied to clipboard: ${generatedName}`);
+            logger.info(`✅ Generated secret name: ${generatedName}`);
+        } catch (error) {
+            logger.error('Failed to generate secret name:', error);
+            vscode.window.showErrorMessage(`Failed to generate secret name: ${error}`);
         }
     }
 

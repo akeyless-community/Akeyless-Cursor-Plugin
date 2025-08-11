@@ -2,7 +2,7 @@
   "name": "akeyless-secrets-manager",
   "displayName": "Akeyless Secrets Manager",
   "description": "Find and fix hardcoded secrets in your code by integrating directly with Akeyless",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "publisher": "Akeyless",
   "license": "MIT",
   "repository": {
@@ -18,7 +18,6 @@
     "vscode": "^1.74.0"
   },
   "categories": [
-    "Security",
     "Other"
   ],
   "keywords": [
@@ -36,6 +35,26 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Akeyless Secrets Manager",
+      "properties": {
+        "akeyless.diagnostics.enableProblemsTab": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show detected secrets in the Problems tab. Disable if you experience accumulation issues."
+        },
+        "akeyless.diagnostics.autoClearOnNewScan": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically clear previous diagnostics when starting a new scan."
+        },
+        "akeyless.diagnostics.showInOutputOnly": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show scan results only in the Output panel, not in the Problems tab."
+        }
+      }
+    },
     "commands": [
       {
         "command": "akeyless.refresh",
@@ -64,6 +83,10 @@
       {
         "command": "akeyless.clearSecretHighlights",
         "title": "Akeyless: Clear Secret Highlights"
+      },
+      {
+        "command": "akeyless.generateSecretName",
+        "title": "Akeyless: Generate Secret Name"
       }
     ],
     "viewsContainers": {

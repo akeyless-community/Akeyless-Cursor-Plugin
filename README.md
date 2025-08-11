@@ -18,6 +18,12 @@ Right-click on a highlighted secret to move it securely to your Akeyless vault.
 
 ![Save to Akeyless Demo](https://raw.githubusercontent.com/akeyless-community/Akeyless-Cursor-Plugin/main/resources/gifs/save_secrets_to_akeyless.gif)
 
+**New Features**:
+- **Empty Secret Name Field**: No more auto-generated names - you must provide a name
+- **Simple Validation**: Only prevents saving when name field is empty
+- **Generate Command**: Use "Akeyless: Generate Secret Name" to get a suggested format
+- **Error Prevention**: Saving process won't proceed without a name
+
 ### **Integrated Experience**
 View alerts in the "Problems" panel and manage all your Akeyless secrets from a dedicated sidebar within Cursor.
 
@@ -25,6 +31,13 @@ View alerts in the "Problems" panel and manage all your Akeyless secrets from a 
 
 ### **Command Palette Integration**
 Use Cursor's command palette to scan your entire codebase for hardcoded secrets.
+
+**Available Commands**:
+- `Akeyless: Scan for Hardcoded Secrets` - Scan your project for secrets
+- `Akeyless: Clear Secret Highlights` - Clear diagnostic markers
+- `Akeyless: Generate Secret Name` - Generate a suggested secret name format
+- `akeyless.forceClearAllDiagnostics` - Force clear all diagnostics (nuclear option)
+- `akeyless.checkDiagnosticsStatus` - Check current diagnostic status
 
 ## Getting Started
 
