@@ -9,7 +9,7 @@ The Akeyless Secrets Manager extension brings enterprise-grade secret management
 ## Key Features
 
 ### **Automatic Secret Detection**
-Scans your code and highlights potential secrets as you type.
+Scans your code and highlights potential secrets.
 
 ![Secret Detection Demo](https://raw.githubusercontent.com/akeyless-community/Akeyless-Cursor-Plugin/main/resources/gifs/scan_for_secrets.gif)
 
