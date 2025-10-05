@@ -37,6 +37,9 @@ export class CommandManager {
             vscode.commands.registerCommand('akeyless.generateSecretName', this.handleGenerateSecretNameCommand.bind(this))
         );
 
+        // Register auto-scan on save functionality
+        this.registerAutoScanOnSave(context);
+
         logger.info('✅ All commands registered successfully');
     }
 
@@ -204,6 +207,63 @@ export class CommandManager {
             logger.error('Failed to scan for hardcoded secrets:', error);
             vscode.window.showErrorMessage(`Failed to scan for hardcoded secrets: ${error}`);
         }
+    }
+
+    /**
+     * Registers auto-scan on save functionality
+     */
+    registerAutoScanOnSave(context: vscode.ExtensionContext): void {
+        logger.info('🔧 Registering auto-scan on save functionality...');
+
+        // Listen for document save events
+        const onDidSaveDocument = vscode.workspace.onDidSaveTextDocument(async (document: vscode.TextDocument) => {
+            // Only scan JavaScript/TypeScript files
+            if (document.fileName.endsWith('.js') || document.fileName.endsWith('.ts') || 
+                document.fileName.endsWith('.jsx') || document.fileName.endsWith('.tsx')) {
+                
+                logger.info(`🔍 Auto-scanning saved file: ${document.fileName}`);
+                
+                try {
+                    // Import SecretScanner dynamically to avoid circular imports
+                    const { SecretScanner } = await import('../utils/secret-scanner');
+                    
+                    // Configure scanner for auto-scan (same as full scanner)
+                    SecretScanner.configure({
+                        developmentMode: true,
+                        skipDevelopmentValues: true,
+                        minEntropy: 3.0
+                    });
+                    
+                    // Scan the document
+                    const secrets = await SecretScanner.scanDocument(document);
+                    
+                    if (secrets.length > 0) {
+                        logger.info(`🚨 Found ${secrets.length} secrets in ${document.fileName}`);
+                        
+                        // Use the same highlighting system as full scanner
+                        await CommandManager.highlightSecretsInEditor(secrets);
+                        
+                        // Use the same results display as full scanner
+                        CommandManager.showScanResults(secrets, 1);
+                        
+                        // Show notification
+                        vscode.window.showWarningMessage(
+                            `Found ${secrets.length} potential secret${secrets.length > 1 ? 's' : ''} in ${document.fileName}`,
+                            'View Details'
+                        );
+                        
+                    } else {
+                        logger.debug(`✅ No secrets found in ${document.fileName}`);
+                    }
+                    
+                } catch (error) {
+                    logger.error(`❌ Error scanning ${document.fileName}:`, error);
+                }
+            }
+        });
+        
+        context.subscriptions.push(onDidSaveDocument);
+        logger.info('✅ Auto-scan on save functionality registered');
     }
 
     /**
