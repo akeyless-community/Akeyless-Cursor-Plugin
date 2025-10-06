@@ -1,8 +1,8 @@
 {
   "name": "akeyless-secrets-manager",
   "displayName": "Akeyless Secrets Manager",
-  "description": "Find and fix hardcoded secrets in your code by integrating directly with Akeyless",
-  "version": "1.0.4",
+  "description": "Find and fix hardcoded secrets in your code by integrating directly with Akeyless. Now with auto-scan on save!",
+  "version": "1.2.1",
   "publisher": "Akeyless",
   "license": "MIT",
   "repository": {
@@ -31,7 +31,9 @@
     "secret-management"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onLanguage:*",
+    "onCommand:akeyless.scanHardcodedSecrets"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -52,6 +54,11 @@
           "type": "boolean",
           "default": false,
           "description": "Show scan results only in the Output panel, not in the Problems tab."
+        },
+        "akeyless.autoScanOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically scan for hardcoded secrets when a file is saved."
         }
       }
     },
@@ -85,8 +92,31 @@
         "title": "Akeyless: Clear Secret Highlights"
       },
       {
+        "command": "akeyless.manualScanOnSave",
+        "title": "Akeyless: Manual Scan Current File"
+      },
+      {
         "command": "akeyless.generateSecretName",
         "title": "Akeyless: Generate Secret Name"
+      },
+      {
+        "command": "akeyless.fixInChat",
+        "title": "Akeyless: Fix in Chat"
+      },
+      {
+        "command": "akeyless.injectCode",
+        "title": "Akeyless: Inject Code"
+      },
+      {
+        "command": "akeyless.quickReplace",
+        "title": "Akeyless: Quick Replace"
+      }
+    ],
+    "codeActions": [
+      {
+        "language": "*",
+        "title": "Akeyless Secret Fixes",
+        "kinds": ["quickfix", "refactor"]
       }
     ],
     "viewsContainers": {
