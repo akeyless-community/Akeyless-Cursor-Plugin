@@ -169,20 +169,38 @@ export class SecretScanner {
         },
         {
             name: 'API Key',
-            pattern: /(?:api[_-]?key|apikey|api_key)\s*[:=]\s*[\"\']?([^\"\'\s]{20,})[\"\']?/gi,
+            pattern: /[\"\']?(?:api[_-]?key|apikey|api_key)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{20,})[\"\']?/gi,
             suggestion: 'API Key',
             confidence: 'medium'
         },
         {
             name: 'Password',
-            pattern: /(?:password|passwd|pwd)\s*[:=]\s*[\"\']?([^\"\'\s]{8,})[\"\']?/gi,
+            pattern: /[\"\']?(?:password|passwd|pwd)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{8,})[\"\']?/gi,
             suggestion: 'Password',
             confidence: 'medium'
         },
         {
             name: 'Token',
-            pattern: /(?:token|access[_-]?token)\s*[:=]\s*[\"\']?([^\"\'\s]{20,100})[\"\']?/gi,
+            pattern: /[\"\']?(?:token)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{20,100})[\"\']?/gi,
             suggestion: 'Token',
+            confidence: 'medium'
+        },
+        {
+            name: 'Client Token',
+            pattern: /[\"\']?(?:client[_-]?token)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{6,})[\"\']?/gi,
+            suggestion: 'Client Token',
+            confidence: 'medium'
+        },
+        {
+            name: 'Client Secret',
+            pattern: /[\"\']?(?:client[_-]?secret)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{6,})[\"\']?/gi,
+            suggestion: 'Client Secret',
+            confidence: 'medium'
+        },
+        {
+            name: 'Access Token',
+            pattern: /[\"\']?(?:access[_-]?token)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{6,})[\"\']?/gi,
+            suggestion: 'Access Token',
             confidence: 'medium'
         },
         {
@@ -199,7 +217,7 @@ export class SecretScanner {
         },
         {
             name: 'Secret',
-            pattern: /(?:secret|private[_-]?key)\s*[:=]\s*[\"\']?([^\"\'\s]{20,})[\"\']?/gi,
+            pattern: /[\"\']?(?:secret|private[_-]?key)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{6,})[\"\']?/gi,
             suggestion: 'Secret',
             confidence: 'medium'
         },
@@ -563,13 +581,19 @@ export class SecretScanner {
                 threshold = this.SCANNER_CONFIG.entropyThresholds.connectionString;
             }
             
+            // For shorter secrets (client_token, client_secret, access_token), use lower threshold
+            if (pattern.name.toLowerCase().includes('client') && value.length < 15) {
+                threshold = 2.0; // Lower threshold for shorter client tokens/secrets
+            }
+            
             // Apply stricter filtering for Go files
             if (isGoFile) {
                 threshold += 0.5; // Increase threshold for Go files
             }
             
             // Low entropy indicates it's likely not a real secret
-            if (entropy < threshold) {
+            // But allow very short values if they match specific patterns (like client_token, client_secret)
+            if (entropy < threshold && !(pattern.name.toLowerCase().includes('client') && value.length < 15)) {
                 logger.debug(`Filtered by low entropy (${entropy.toFixed(2)} < ${threshold}): "${value}"`);
                 return true;
             }
@@ -720,7 +744,12 @@ export class SecretScanner {
         }
         
         // Skip if it's clearly not a secret (too short, too simple, or just common words)
-        if (value.length < 10 || /^[a-z]+$/i.test(value) || 
+        // But allow shorter values for client_token, client_secret, access_token patterns
+        const isClientPattern = pattern && (pattern.name.toLowerCase().includes('client') || 
+                                           pattern.name.toLowerCase().includes('access_token'));
+        const minLength = isClientPattern ? 6 : 10;
+        
+        if (value.length < minLength || /^[a-z]+$/i.test(value) || 
             lowerValue.includes('true') || lowerValue.includes('false') || lowerValue.includes('null') ||
             lowerValue.includes('undefined') || lowerValue.includes('nan')) {
             logger.debug(`Filtered by simple value: "${value}"`);

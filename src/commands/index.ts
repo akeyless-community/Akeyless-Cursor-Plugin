@@ -217,9 +217,10 @@ export class CommandManager {
 
         // Listen for document save events
         const onDidSaveDocument = vscode.workspace.onDidSaveTextDocument(async (document: vscode.TextDocument) => {
-            // Only scan JavaScript/TypeScript files
+            // Scan JavaScript/TypeScript and JSON files
             if (document.fileName.endsWith('.js') || document.fileName.endsWith('.ts') || 
-                document.fileName.endsWith('.jsx') || document.fileName.endsWith('.tsx')) {
+                document.fileName.endsWith('.jsx') || document.fileName.endsWith('.tsx') ||
+                document.fileName.endsWith('.json')) {
                 
                 logger.info(`🔍 Auto-scanning saved file: ${document.fileName}`);
                 
