@@ -27,25 +27,25 @@ export class SecretScanner {
         },
         {
             name: 'AWS Secret Key',
-            pattern: /[0-9a-zA-Z/+]{40}(?![0-9a-zA-Z/+])/g,
+            pattern: /(?:aws[_-]?secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|secret[_-]?access[_-]?key)\s*[:=]\s*["']?([0-9a-zA-Z/+]{40})["']?/gi,
             suggestion: 'AWS Secret Key',
             confidence: 'high'
         },
         {
             name: 'AWS Session Token',
-            pattern: /(?:aws[_-]?session[_-]?token|session_token)\s*[:=]\s*[\"\']?([A-Za-z0-9+/]{300,})[\"\']?/gi,
+            pattern: /(?:aws[_-]?session[_-]?token|session_token)\s*[:=]\s*["']?([A-Za-z0-9+/]{300,})["']?/gi,
             suggestion: 'AWS Session Token',
             confidence: 'high'
         },
         {
             name: 'Azure Storage Account Key',
-            pattern: /[a-zA-Z0-9]{88}/g,
+            pattern: /(?:azure[_-]?storage[_-]?account[_-]?key|storage[_-]?account[_-]?key|accountkey)\s*[:=]\s*["']?([a-zA-Z0-9/+]{88})["']?/gi,
             suggestion: 'Azure Storage Account Key',
             confidence: 'high'
         },
         {
             name: 'GCP Service Account Key',
-            pattern: /\"type\":\s*\"service_account\".*\"private_key\":\s*\"-----BEGIN\s+PRIVATE\s+KEY-----/gs,
+            pattern: /"type":\s*"service_account".*"private_key":\s*"-----BEGIN\s+PRIVATE\s+KEY-----/gs,
             suggestion: 'GCP Service Account Key',
             confidence: 'high'
         },
@@ -65,7 +65,7 @@ export class SecretScanner {
         },
         {
             name: 'Slack Token',
-            pattern: /xox[p|b|o|a]-[A-Za-z0-9\-]+/g,
+            pattern: /xox[p|b|o|a]-[A-Za-z0-9-]+/g,
             suggestion: 'Slack Token',
             confidence: 'high'
         },
@@ -129,7 +129,7 @@ export class SecretScanner {
         },
         {
             name: 'OAuth Token',
-            pattern: /(?:oauth[_-]?token|access[_-]?token|bearer[_-]?token)\s*[:=]\s*[\"\']?([a-zA-Z0-9\-._~+/]{20,})[\"\']?/gi,
+            pattern: /(?:oauth[_-]?token|access[_-]?token|bearer[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-._~+/]{20,})["']?/gi,
             suggestion: 'OAuth Token',
             confidence: 'medium'
         },
@@ -137,19 +137,19 @@ export class SecretScanner {
         // Database Credentials
         {
             name: 'MongoDB Connection String',
-            pattern: /mongodb(\+srv)?:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&\'()*+,;=]+/g,
+            pattern: /mongodb(\+srv)?:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=]+/g,
             suggestion: 'MongoDB Connection String',
             confidence: 'high'
         },
         {
             name: 'PostgreSQL Connection String',
-            pattern: /postgresql:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&\'()*+,;=]+/g,
+            pattern: /postgresql:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=]+/g,
             suggestion: 'PostgreSQL Connection String',
             confidence: 'high'
         },
         {
             name: 'MySQL Connection String',
-            pattern: /mysql:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&\'()*+,;=]+/g,
+            pattern: /mysql:\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=]+/g,
             suggestion: 'MySQL Connection String',
             confidence: 'high'
         },
@@ -157,73 +157,73 @@ export class SecretScanner {
         // MEDIUM CONFIDENCE PATTERNS (Context-based detection)
         {
             name: 'Gemini API Key',
-            pattern: /(?:gemini[_-]?api[_-]?key|gemini_api_key)\s*[:=]\s*[\"\']?([^\"\'\s]{20,})[\"\']?/gi,
+            pattern: /(?:gemini[_-]?api[_-]?key|gemini_api_key)\s*[:=]\s*["']?([^"' \t\r\n]{20,})["']?/gi,
             suggestion: 'Gemini API Key',
             confidence: 'medium'
         },
         {
             name: 'OpenAI API Key',
-            pattern: /(?:openai[_-]?api[_-]?key|openai_api_key)\s*[:=]\s*[\"\']?([^\"\'\s]{20,})[\"\']?/gi,
+            pattern: /(?:openai[_-]?api[_-]?key|openai_api_key)\s*[:=]\s*["']?([^"' \t\r\n]{20,})["']?/gi,
             suggestion: 'OpenAI API Key',
             confidence: 'medium'
         },
         {
             name: 'API Key',
-            pattern: /[\"\']?(?:api[_-]?key|apikey|api_key)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{20,})[\"\']?/gi,
+            pattern: /["']?(?:api[_-]?key|apikey|api_key)["']?\s*[:=]\s*["']?([^"' \t\r\n]{20,})["']?/gi,
             suggestion: 'API Key',
             confidence: 'medium'
         },
         {
             name: 'Password',
-            pattern: /[\"\']?(?:password|passwd|pwd)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{8,})[\"\']?/gi,
+            pattern: /["']?(?:password|passwd|pwd)["']?\s*[:=]\s*["']?([^"' \t\r\n]{8,})["']?/gi,
             suggestion: 'Password',
             confidence: 'medium'
         },
         {
             name: 'Token',
-            pattern: /[\"\']?(?:token)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{20,100})[\"\']?/gi,
+            pattern: /["']?(?:token)["']?\s*[:=]\s*["']?([^"' \t\r\n]{20,100})["']?/gi,
             suggestion: 'Token',
             confidence: 'medium'
         },
         {
             name: 'Client Token',
-            pattern: /[\"\']?(?:client[_-]?token)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{6,})[\"\']?/gi,
+            pattern: /["']?(?:client[_-]?token)["']?\s*[:=]\s*["']?([^"' \t\r\n]{6,})["']?/gi,
             suggestion: 'Client Token',
             confidence: 'medium'
         },
         {
             name: 'Client Secret',
-            pattern: /[\"\']?(?:client[_-]?secret)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{6,})[\"\']?/gi,
+            pattern: /["']?(?:client[_-]?secret)["']?\s*[:=]\s*["']?([^"' \t\r\n]{6,})["']?/gi,
             suggestion: 'Client Secret',
             confidence: 'medium'
         },
         {
             name: 'Access Token',
-            pattern: /[\"\']?(?:access[_-]?token)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{6,})[\"\']?/gi,
+            pattern: /["']?(?:access[_-]?token)["']?\s*[:=]\s*["']?([^"' \t\r\n]{6,})["']?/gi,
             suggestion: 'Access Token',
             confidence: 'medium'
         },
         {
             name: 'Database URL',
-            pattern: /(?:database|db)[_-]?url\s*[:=]\s*[\"\']?([^\"\'\s]{20,})[\"\']?/gi,
+            pattern: /(?:database|db)[_-]?url\s*[:=]\s*["']?([^"' \t\r\n]{20,})["']?/gi,
             suggestion: 'Database URL',
             confidence: 'medium'
         },
         {
             name: 'Connection String',
-            pattern: /(?:connection[_-]?string|conn[_-]?string)\s*[:=]\s*[\"\']?([^\"\'\s]{20,})[\"\']?/gi,
+            pattern: /(?:connection[_-]?string|conn[_-]?string)\s*[:=]\s*["']?([^"' \t\r\n]{20,})["']?/gi,
             suggestion: 'Connection String',
             confidence: 'medium'
         },
         {
             name: 'Secret',
-            pattern: /[\"\']?(?:secret|private[_-]?key)[\"\']?\s*[:=]\s*[\"\']?([^\"\'\s]{6,})[\"\']?/gi,
+            pattern: /["']?(?:secret|private[_-]?key)["']?\s*[:=]\s*["']?([^"' \t\r\n]{6,})["']?/gi,
             suggestion: 'Secret',
             confidence: 'medium'
         },
         {
             name: 'Go Secret Assignment',
-            pattern: /(?:secret|key|token|password)\s*[:=]\s*[\"\']([^\"\']{10,})[\"\']/gi,
+            pattern: /(?:secret|key|token|password)\s*[:=]\s*["']([^"']{10,})["']/gi,
             suggestion: 'Go Secret Assignment',
             confidence: 'medium'
         },
@@ -245,7 +245,7 @@ export class SecretScanner {
         // Environment Variables
         {
             name: 'Environment Variable',
-            pattern: /(?:export\s+)?([A-Z_][A-Z0-9_]*)\s*[:=]\s*[\"\']([^\"\']{10,})[\"\']/g,
+            pattern: /(?:export\s+)?([A-Z_][A-Z0-9_]*)\s*[:=]\s*["']([^"']{10,})["']/g,
             suggestion: 'Environment Variable',
             confidence: 'medium'
         }
@@ -362,7 +362,7 @@ export class SecretScanner {
         // Only scan the current project files, exclude all library and build directories
         const files = await vscode.workspace.findFiles(
             '**/*.{js,jsx,ts,tsx,json,env,yml,yaml,properties,ini,cfg,conf,env.local,env.development,env.production,txt,md}',
-            '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**,**/out/**,**/target/**,**/bin/**,**/obj/**,**/.vscode-test/**,**/coverage/**,**/.nyc_output/**,**/logs/**,**/temp/**,**/tmp/**'
+            '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**,**/out/**,**/target/**,**/bin/**,**/obj/**,**/.vscode-test/**,**/coverage/**,**/.nyc_output/**,**/logs/**,**/temp/**,**/tmp/**,**/.venv/**,**/venv/**,**/site-packages/**,**/__pycache__/**,**/.pytest_cache/**'
         );
 
         logger.info(`Found ${files.length} files to scan`);
@@ -435,7 +435,7 @@ export class SecretScanner {
         // Only scan files in the current project, exclude all library directories
         const files = await vscode.workspace.findFiles(
             '**/*.{js,jsx,ts,tsx,json,env,yml,yaml,properties,ini,cfg,conf,env.local,env.development,env.production,txt,md}',
-            '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**,**/out/**,**/target/**,**/bin/**,**/obj/**,**/.vscode-test/**,**/logs/**,**/temp/**,**/tmp/**,**/package-lock.json,**/yarn.lock'
+            '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**,**/out/**,**/target/**,**/bin/**,**/obj/**,**/.vscode-test/**,**/logs/**,**/temp/**,**/tmp/**,**/.venv/**,**/venv/**,**/site-packages/**,**/__pycache__/**,**/.pytest_cache/**,**/package-lock.json,**/yarn.lock'
         );
 
         // Additional filter to exclude node_modules and other library files
@@ -455,6 +455,11 @@ export class SecretScanner {
                    filePath.includes('logs') || 
                    filePath.includes('temp') || 
                    filePath.includes('tmp') ||
+                   filePath.includes('.venv') ||
+                   filePath.includes('venv/') ||
+                   filePath.includes('site-packages') ||
+                   filePath.includes('__pycache__') ||
+                   filePath.includes('.pytest_cache') ||
                    filePath.endsWith('package-lock.json') ||
                    filePath.endsWith('yarn.lock');
             
@@ -555,6 +560,42 @@ export class SecretScanner {
                         lowerLine.includes('log.') || lowerLine.includes('http.') ||
                         lowerLine.includes('mux.') || lowerLine.includes('gin.') ||
                         lowerLine.includes('echo.') || lowerLine.includes('fiber.');
+        
+        // Skip JSON schema references early (common false positive)
+        if (value.includes('$ref') || value.includes('#/$defs') || value.includes('#/definitions') ||
+            value.startsWith('#/') || (value.startsWith('$') && !value.includes('='))) {
+            logger.debug(`Filtered JSON schema reference: "${value}"`);
+            return true;
+        }
+        
+        // Skip file paths and bundle names early (common false positive)
+        if (value.includes('.js') || value.includes('.ts') || 
+            value.includes('main-') || value.includes('bundle-') || value.includes('chunk-') ||
+            value.match(/^[a-zA-Z0-9_-]+\.(js|ts|jsx|tsx|json|css|html|png|jpg|jpeg|gif|svg)$/i)) {
+            
+            // If it has path separators or looks like a filename, filter it
+            if (value.includes('/') || value.includes('\\') || value.match(/\.[a-z0-9]{2,4}$/i)) {
+                logger.debug(`Filtered file path/bundle name: "${value}"`);
+                return true;
+            }
+        }
+        
+        // Skip JSON schema property names in schema context
+        if ((value.includes('Config') || value.includes('AuthConfig') || value.includes('ServiceAccount')) && 
+            (lowerLine.includes('$ref') || lowerLine.includes('#/$defs') || lowerLine.includes('#/definitions') ||
+            lowerLine.includes('"type"') || lowerLine.includes('"properties"') ||
+            lowerLine.includes('"description"') || lowerLine.includes('"required"') ||
+            lowerLine.includes('"$defs"') || lowerLine.includes('"definitions"'))) {
+            logger.debug(`Filtered JSON schema property: "${value}"`);
+            return true;
+        }
+        
+        // Skip values that are clearly type names or class names (PascalCase with Config/Account/etc.)
+        if (value.match(/^[A-Z][a-zA-Z0-9]*(Config|Account|Service|Provider|Client|Manager|Handler|Controller)[a-zA-Z0-9]*$/) &&
+            (lowerLine.includes('"type"') || lowerLine.includes('"$ref"') || lowerLine.includes('"class"'))) {
+            logger.debug(`Filtered type/class name: "${value}"`);
+            return true;
+        }
         
         if (pattern && pattern.confidence === 'high') {
             // Only filter high confidence patterns if they're clearly false positives
@@ -824,6 +865,23 @@ export class SecretScanner {
         const lowerValue = value.toLowerCase();
         const lowerLine = line.toLowerCase();
         
+        // Skip JSON schema references ($ref, #/$defs, etc.)
+        if (value.includes('$ref') || value.includes('#/$defs') || value.includes('#/definitions') ||
+            value.startsWith('#/') || value.startsWith('$')) {
+            return true;
+        }
+        
+        // Skip file paths and bundle names (common in JS bundles)
+        if (value.includes('/') && (value.includes('.js') || value.includes('.ts') || 
+            value.includes('main-') || value.includes('bundle-') || value.includes('chunk-'))) {
+            return true;
+        }
+        
+        // Skip if it looks like a filename or path
+        if (value.match(/^[a-zA-Z0-9_-]+\.(js|ts|jsx|tsx|json|css|html|png|jpg|jpeg|gif|svg)$/i)) {
+            return true;
+        }
+        
         // Skip if contains common false positive keywords
         if (lowerValue.includes('example') || lowerValue.includes('dummy') || 
             lowerValue.includes('placeholder') || lowerValue.includes('sample')) {
@@ -851,6 +909,16 @@ export class SecretScanner {
             (value.match(/^[a-zA-Z][a-zA-Z0-9]*\.[A-Z][a-zA-Z0-9]*/) ||
              value.match(/^[a-zA-Z][a-zA-Z0-9]*\.[a-zA-Z][a-zA-Z0-9]*\.[A-Z][a-zA-Z0-9]*/))) {
             return true;
+        }
+        
+        // Skip JSON schema property names and type definitions
+        if (value.includes('Config') && (value.includes('AuthConfig') || value.includes('ServiceAccount') ||
+            value.includes('Google') || value.includes('Azure') || value.includes('AWS'))) {
+            // Check if it's in a JSON schema context
+            if (lowerLine.includes('$ref') || lowerLine.includes('#/$defs') || 
+                lowerLine.includes('"type"') || lowerLine.includes('"properties"')) {
+                return true;
+            }
         }
         
         // Don't filter out JWT tokens (they contain dots but are valid secrets)
