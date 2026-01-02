@@ -2,9 +2,9 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { AkeylessCLI } from '../services/akeyless-cli';
 import { AkeylessItem, TreeItemStatus } from '../types';
-import { ICONS, MESSAGES, STATUS_TYPES, VIEWS } from '../constants';
+import { ICONS, MESSAGES, STATUS_TYPES } from '../constants';
 import { logger } from '../utils/logger';
-import { extractSecretName, formatItemType, createMockItem } from '../utils/helpers';
+import { extractSecretName, createMockItem } from '../utils/helpers';
 
 export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<SecretTreeItem | undefined | null | void> = new vscode.EventEmitter<SecretTreeItem | undefined | null | void>();
@@ -15,8 +15,10 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
     private nextPageToken: string | null = null;
     private isLoading: boolean = false;
     private hasMorePages: boolean = true;
+    private akeylessCLI: AkeylessCLI;
 
-    constructor(private akeylessCLI: AkeylessCLI) {
+    constructor(akeylessCLI: AkeylessCLI) {
+        this.akeylessCLI = akeylessCLI;
         logger.info('🌳 SecretsTreeProvider initialized');
     }
 
@@ -155,13 +157,17 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
     private createHierarchicalStructure(items: SecretTreeItem[]): SecretTreeItem[] {
         const folderMap = new Map<string, SecretTreeItem[]>();
         const rootItems: SecretTreeItem[] = [];
+        // Track folders by normalized path to prevent duplicates
+        const folderSet = new Set<string>();
         
         // When searching, track which folders contain matching items
         const matchingFolders = new Set<string>();
         if (this.searchTerm) {
             for (const item of items) {
                 if (item.status.type === STATUS_TYPES.NORMAL) {
-                    const pathParts = item.item.item_name.split('/').filter(part => part.length > 0);
+                    // Normalize path - handle Windows backslashes
+                    const normalizedPath = item.item.item_name.replace(/\\/g, '/');
+                    const pathParts = normalizedPath.split('/').filter(part => part.length > 0);
                     if (pathParts.length > 1) {
                         // Add all parent folders of this matching item
                         let currentPath = '';
@@ -175,7 +181,9 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
         }
 
         for (const item of items) {
-            const pathParts = item.item.item_name.split('/').filter(part => part.length > 0);
+            // Normalize path - handle Windows backslashes
+            const normalizedPath = item.item.item_name.replace(/\\/g, '/');
+            const pathParts = normalizedPath.split('/').filter(part => part.length > 0);
             
             if (pathParts.length === 1) {
                 // Root level item
@@ -193,24 +201,50 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
                     const folderName = folderPath[i];
                     currentPath += `/${folderName}`;
                     
+                    // Normalize current path for comparison
+                    const normalizedCurrentPath = currentPath.replace(/\\/g, '/');
+                    
                     // When searching, only create folders that contain matching items
-                    if (this.searchTerm && !matchingFolders.has(currentPath)) {
+                    if (this.searchTerm && !matchingFolders.has(normalizedCurrentPath)) {
+                        continue;
+                    }
+                    
+                    // Check if folder already exists using normalized path
+                    if (folderSet.has(normalizedCurrentPath)) {
+                        // Folder already exists, find it and continue to next level
+                        const existingFolder = currentLevel.find(item => 
+                            item.item.item_type === 'FOLDER' && 
+                            item.item.item_name.replace(/\\/g, '/') === normalizedCurrentPath
+                        );
+                        if (existingFolder) {
+                            if (i === folderPath.length - 1) {
+                                // This is the final folder level, add the item here
+                                const childItem = { ...item.item };
+                                childItem.item_name = itemName;
+                                const childTreeItem = new SecretTreeItem(childItem, { type: STATUS_TYPES.SUCCESS } as TreeItemStatus);
+                                folderMap.get(normalizedCurrentPath)!.push(childTreeItem);
+                            } else {
+                                // This is an intermediate folder, continue to next level
+                                currentLevel = folderMap.get(normalizedCurrentPath) || [];
+                            }
+                        }
                         continue;
                     }
                     
                     // Find or create folder at current level
                     let folderItem = currentLevel.find(item => 
                         item.item.item_type === 'FOLDER' && 
-                        item.item.item_name === currentPath
+                        item.item.item_name.replace(/\\/g, '/') === normalizedCurrentPath
                     );
                     
                     if (!folderItem) {
                         // Create new folder
                         const folderItemData = createMockItem(folderName, 'FOLDER');
-                        folderItemData.item_name = currentPath;
+                        folderItemData.item_name = normalizedCurrentPath;
                         folderItem = new SecretTreeItem(folderItemData, { type: STATUS_TYPES.SUCCESS } as TreeItemStatus);
                         currentLevel.push(folderItem);
-                        folderMap.set(currentPath, []);
+                        folderMap.set(normalizedCurrentPath, []);
+                        folderSet.add(normalizedCurrentPath);
                     }
                     
                     // Move to next level (folder children)
@@ -219,10 +253,10 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
                         const childItem = { ...item.item };
                         childItem.item_name = itemName;
                         const childTreeItem = new SecretTreeItem(childItem, { type: STATUS_TYPES.SUCCESS } as TreeItemStatus);
-                        folderMap.get(currentPath)!.push(childTreeItem);
+                        folderMap.get(normalizedCurrentPath)!.push(childTreeItem);
                     } else {
                         // This is an intermediate folder, continue to next level
-                        currentLevel = folderMap.get(currentPath) || [];
+                        currentLevel = folderMap.get(normalizedCurrentPath) || [];
                     }
                 }
             }
@@ -232,7 +266,7 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
         for (const [folderPath, children] of folderMap) {
             const folderItem = rootItems.find(item => 
                 item.item.item_type === 'FOLDER' && 
-                item.item.item_name === folderPath
+                item.item.item_name.replace(/\\/g, '/') === folderPath
             );
             if (folderItem) {
                 folderItem.children = children;
@@ -245,20 +279,30 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
     private getFolderChildren(folderPath: string): SecretTreeItem[] {
         if (!this.cachedItems) return [];
         
-        const folderName = folderPath.replace('/', '');
-        const folderDepth = folderPath.split('/').filter(part => part.length > 0).length;
+        // Normalize folder path - ensure it starts with / and uses forward slashes
+        const normalizedFolderPath = folderPath.startsWith('/') ? folderPath : '/' + folderPath;
+        const normalizedFolderPathClean = normalizedFolderPath.replace(/\\/g, '/'); // Handle Windows backslashes
         
-        const children = this.cachedItems
+        const folderDepth = normalizedFolderPathClean.split('/').filter(part => part.length > 0).length;
+        
+        // Use a Map to track unique items by full path to avoid duplicates
+        // Key format: "FOLDER:/path/to/folder" or "ITEM:itemName" to ensure uniqueness
+        const uniqueItems = new Map<string, SecretTreeItem>();
+        
+        this.cachedItems
             .filter(item => {
-                const pathParts = item.item.item_name.split('/').filter(part => part.length > 0);
+                // Normalize item path - handle Windows backslashes
+                const normalizedItemPath = item.item.item_name.replace(/\\/g, '/');
+                const pathParts = normalizedItemPath.split('/').filter(part => part.length > 0);
                 const itemDepth = pathParts.length;
                 
                 // Check if this item belongs to this folder level
                 if (itemDepth <= folderDepth) return false;
                 
-                // Check if the path starts with this folder path
+                // Check if the path starts with this folder path (normalized comparison)
                 const itemPath = '/' + pathParts.slice(0, folderDepth).join('/');
-                if (itemPath !== folderPath) return false;
+                const normalizedItemPathPrefix = itemPath.replace(/\\/g, '/');
+                if (normalizedItemPathPrefix !== normalizedFolderPathClean) return false;
                 
                 // When searching, only include items that match the search term
                 if (this.searchTerm) {
@@ -271,8 +315,10 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
                 
                 return true;
             })
-            .map(item => {
-                const pathParts = item.item.item_name.split('/').filter(part => part.length > 0);
+            .forEach(item => {
+                // Normalize item path
+                const normalizedItemPath = item.item.item_name.replace(/\\/g, '/');
+                const pathParts = normalizedItemPath.split('/').filter(part => part.length > 0);
                 const itemName = pathParts[pathParts.length - 1];
                 const remainingPath = pathParts.slice(folderDepth);
                 
@@ -280,18 +326,30 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
                     // This is a direct child (secret item)
                     const childItem = { ...item.item };
                     childItem.item_name = itemName;
-                    return new SecretTreeItem(childItem, { type: STATUS_TYPES.SUCCESS } as TreeItemStatus);
+                    
+                    // Use full item path as key to ensure uniqueness
+                    const uniqueKey = `ITEM:${normalizedFolderPathClean}/${itemName}`;
+                    if (!uniqueItems.has(uniqueKey)) {
+                        uniqueItems.set(uniqueKey, new SecretTreeItem(childItem, { type: STATUS_TYPES.SUCCESS } as TreeItemStatus));
+                    }
                 } else {
                     // This is a subfolder
                     const subfolderName = remainingPath[0];
-                    const subfolderPath = folderPath + '/' + subfolderName;
-                    const subfolderItem = createMockItem(subfolderName, 'FOLDER');
-                    subfolderItem.item_name = subfolderPath;
-                    return new SecretTreeItem(subfolderItem, { type: STATUS_TYPES.SUCCESS } as TreeItemStatus);
+                    const subfolderPath = normalizedFolderPathClean + '/' + subfolderName;
+                    
+                    // Use full folder path as key to ensure uniqueness
+                    const uniqueKey = `FOLDER:${subfolderPath}`;
+                    
+                    // Only add subfolder if not already added
+                    if (!uniqueItems.has(uniqueKey)) {
+                        const subfolderItem = createMockItem(subfolderName, 'FOLDER');
+                        subfolderItem.item_name = subfolderPath;
+                        uniqueItems.set(uniqueKey, new SecretTreeItem(subfolderItem, { type: STATUS_TYPES.SUCCESS } as TreeItemStatus));
+                    }
                 }
             });
         
-        return children;
+        return Array.from(uniqueItems.values());
     }
 
 
@@ -398,7 +456,7 @@ export class SecretTreeItem extends vscode.TreeItem {
                 this.iconPath = new vscode.ThemeIcon(ICONS.LOADING.icon, new vscode.ThemeColor(ICONS.LOADING.color));
                 this.contextValue = 'akeyless-loading';
                 break;
-            case STATUS_TYPES.AUTH_REQUIRED:
+            case STATUS_TYPES.AUTH_REQUIRED: {
                 // Use Akeyless logo for authentication required
                 const authIconPath = path.join(__dirname, '..', '..', ICONS.AKEYLESS_LOGO);
                 logger.debug(`🔐 Using Akeyless logo for auth required: ${authIconPath}`);
@@ -408,6 +466,7 @@ export class SecretTreeItem extends vscode.TreeItem {
                 };
                 this.contextValue = 'akeyless-auth-required';
                 break;
+            }
             case STATUS_TYPES.EMPTY:
                 this.iconPath = new vscode.ThemeIcon(ICONS.EMPTY.icon, new vscode.ThemeColor(ICONS.EMPTY.color));
                 this.contextValue = 'akeyless-empty';
@@ -416,7 +475,7 @@ export class SecretTreeItem extends vscode.TreeItem {
                 this.iconPath = new vscode.ThemeIcon(ICONS.LOAD_MORE.icon, new vscode.ThemeColor(ICONS.LOAD_MORE.color));
                 this.contextValue = 'akeyless-load-more';
                 break;
-            default:
+            default: {
                 // Set icon based on item type with custom SVG icons
                 const iconConfig = this.getIconForItemType(item.item_type, item.item_sub_type); // Pass sub_type
                 logger.debug(`🎨 Icon config for ${item.item_name}:`, iconConfig);
@@ -436,6 +495,7 @@ export class SecretTreeItem extends vscode.TreeItem {
 
                 // Set context value with item type information for context menu filtering
                 this.contextValue = `akeyless-item-${item.item_type}-${item.item_sub_type || 'unknown'}`;
+            }
         }
     }
 
