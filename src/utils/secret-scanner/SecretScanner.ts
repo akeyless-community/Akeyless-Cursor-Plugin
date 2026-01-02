@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { HardcodedSecret, SecretPattern, ScannerConfig, DetectedRange } from './types';
+import { HardcodedSecret, ScannerConfig, DetectedRange } from './types';
 import { PatternRegistry } from './PatternRegistry';
 import { FalsePositiveFilter } from './filters/FalsePositiveFilter';
 import { ScannerConfigManager } from './utils/ScannerConfig';
@@ -29,7 +29,16 @@ export class SecretScanner {
      */
     async scanDocument(document: vscode.TextDocument): Promise<HardcodedSecret[]> {
         const secrets: HardcodedSecret[] = [];
-        const lines = document.getText().split('\n');
+        const fullText = document.getText();
+        const lowerText = fullText.toLowerCase();
+        
+        // Early exit: Skip if this is a scan report or RTF document
+        if (this.isScanReportDocument(fullText, lowerText, document.fileName)) {
+            logger.debug(`Skipping scan report/document: ${document.fileName}`);
+            return [];
+        }
+        
+        const lines = fullText.split('\n');
         const detectedRanges: DetectedRange[] = [];
 
         const sortedPatterns = this.patternRegistry.getSortedByConfidence();
@@ -109,7 +118,7 @@ export class SecretScanner {
 
         const files = await vscode.workspace.findFiles(
             '**/*.{js,jsx,ts,tsx,json,env,yml,yaml,properties,ini,cfg,conf,env.local,env.development,env.production,txt,md,go,py,java,cs,php,rb,swift,kt,rs,cpp,c,cc,h,hpp,cxx,mm,m,vue,svelte,html,css,scss,less,sass,sh,bash,zsh,fish,ps1,ps,bat,cmd,tf,tfvars,hcl,dockerfile,sql,plsql,mysql,pgsql,r,R,lua,pl,perl,vb,vbs,f,f90,f95,f03,ml,mli,fs,fsx,ex,exs,erl,hrl,nim,cr,zig,v,vala,d,jl,el,lisp,cl,hs,lhs,elm,purescript,ocaml,scala,groovy,clj,cljs,dart,asm,s,scm,rkt,coffee,litcoffee,iced,styl,stylus,jade,pug,haml,slim,ejs,hbs,handlebars,mustache,erb,rhtml,edn,re,rei,res,resi,toml,xml,xsd,xsl,xslt}',
-            '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**,**/out/**,**/target/**,**/bin/**,**/obj/**,**/.vscode-test/**,**/coverage/**,**/.nyc_output/**,**/logs/**,**/temp/**,**/tmp/**,**/.venv/**,**/venv/**,**/site-packages/**,**/__pycache__/**,**/.pytest_cache/**'
+            '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**,**/out/**,**/target/**,**/bin/**,**/obj/**,**/.vscode-test/**,**/coverage/**,**/.nyc_output/**,**/logs/**,**/temp/**,**/tmp/**,**/.venv/**,**/venv/**,**/site-packages/**,**/__pycache__/**,**/.pytest_cache/**,**/*.rtf,**/*.doc,**/*.docx,**/*.pdf,**/*.odt'
         );
 
         logger.info(`Found ${files.length} files to scan`);
@@ -179,7 +188,7 @@ export class SecretScanner {
 
         const files = await vscode.workspace.findFiles(
             '**/*.{js,jsx,ts,tsx,json,env,yml,yaml,properties,ini,cfg,conf,env.local,env.development,env.production,txt,md,go,py,java,cs,php,rb,swift,kt,rs,cpp,c,cc,h,hpp,cxx,mm,m,vue,svelte,html,css,scss,less,sass,sh,bash,zsh,fish,ps1,ps,bat,cmd,tf,tfvars,hcl,dockerfile,sql,plsql,mysql,pgsql,r,R,lua,pl,perl,vb,vbs,f,f90,f95,f03,ml,mli,fs,fsx,ex,exs,erl,hrl,nim,cr,zig,v,vala,d,jl,el,lisp,cl,hs,lhs,elm,purescript,ocaml,scala,groovy,clj,cljs,dart,asm,s,scm,rkt,coffee,litcoffee,iced,styl,stylus,jade,pug,haml,slim,ejs,hbs,handlebars,mustache,erb,rhtml,edn,re,rei,res,resi,toml,xml,xsd,xsl,xslt}',
-            '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**,**/out/**,**/target/**,**/bin/**,**/obj/**,**/.vscode-test/**,**/logs/**,**/temp/**,**/tmp/**,**/.venv/**,**/venv/**,**/site-packages/**,**/__pycache__/**,**/.pytest_cache/**,**/package-lock.json,**/yarn.lock'
+            '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**,**/out/**,**/target/**,**/bin/**,**/obj/**,**/.vscode-test/**,**/logs/**,**/temp/**,**/tmp/**,**/.venv/**,**/venv/**,**/site-packages/**,**/__pycache__/**,**/.pytest_cache/**,**/package-lock.json,**/yarn.lock,**/*.rtf,**/*.doc,**/*.docx,**/*.pdf,**/*.odt'
         );
 
         const filteredFiles = files.filter(file => {
@@ -204,7 +213,12 @@ export class SecretScanner {
                 filePath.includes('__pycache__') ||
                 filePath.includes('.pytest_cache') ||
                 filePath.endsWith('package-lock.json') ||
-                filePath.endsWith('yarn.lock');
+                filePath.endsWith('yarn.lock') ||
+                filePath.endsWith('.rtf') ||
+                filePath.endsWith('.doc') ||
+                filePath.endsWith('.docx') ||
+                filePath.endsWith('.pdf') ||
+                filePath.endsWith('.odt');
 
             if (shouldExclude) {
                 logger.debug(`Excluding library file: ${vscode.workspace.asRelativePath(file.fsPath)}`);
@@ -320,6 +334,44 @@ export class SecretScanner {
 
     static generateSecretName(secret: HardcodedSecret, fileName: string): string {
         return SecretScanner.getDefaultInstance().generateSecretName(secret, fileName);
+    }
+
+    /**
+     * Checks if a document is a scan report or RTF/document file that should be skipped
+     */
+    private isScanReportDocument(fullText: string, lowerText: string, fileName: string): boolean {
+        const lowerFileName = fileName.toLowerCase();
+        
+        // Skip RTF and document files by extension
+        if (lowerFileName.endsWith('.rtf') ||
+            lowerFileName.endsWith('.doc') ||
+            lowerFileName.endsWith('.docx') ||
+            lowerFileName.endsWith('.pdf') ||
+            lowerFileName.endsWith('.odt')) {
+            return true;
+        }
+        
+        // Check for RTF format markers
+        if (fullText.includes('{\\rtf1') ||
+            fullText.includes('\\cocoartf') ||
+            fullText.includes('\\fonttbl') ||
+            fullText.includes('\\colortbl')) {
+            return true;
+        }
+        
+        // Check for scan report content indicators
+        if (lowerText.includes('hardcoded secrets scan results') ||
+            (lowerText.includes('scan results') && lowerText.includes('secrets found')) ||
+            (lowerText.includes('file:') && lowerText.includes('path:') && 
+             lowerText.includes('location: line') && lowerText.includes('value:'))) {
+            // Additional check: if it has multiple "FILE:" entries, it's definitely a report
+            const fileMatches = (lowerText.match(/file:/g) || []).length;
+            if (fileMatches >= 3) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }
 

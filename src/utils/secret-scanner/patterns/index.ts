@@ -373,7 +373,7 @@ export const SECRET_PATTERNS: SecretPattern[] = [
     {
         name: 'Elasticsearch Connection String',
         // eslint-disable-next-line no-useless-escape
-        pattern: /(?:elasticsearch|es)[://]+[a-zA-Z0-9._~:/?#[\]@!$&'()*+,;=\-]+/g,
+        pattern: /(?:elasticsearch|es):\/\/[a-zA-Z0-9._~:/?#[\]@!$&'()*+,;=\-]+/g,
         suggestion: 'Elasticsearch Connection String',
         confidence: 'high'
     },

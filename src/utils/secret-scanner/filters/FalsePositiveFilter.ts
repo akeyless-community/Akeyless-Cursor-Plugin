@@ -7,7 +7,11 @@ import { logger } from '../../logger';
  * Breaks down complex filtering logic into smaller, testable methods
  */
 export class FalsePositiveFilter {
-    constructor(private readonly config: ScannerConfig) {}
+    private readonly config: ScannerConfig;
+
+    constructor(config: ScannerConfig) {
+        this.config = config;
+    }
 
     /**
      * Main method to check if a detected value is a false positive
@@ -18,6 +22,12 @@ export class FalsePositiveFilter {
         const isGoFile = this.isGoFile(line, lowerLine);
 
         // Early exit checks for common false positives
+        // Check if this is scan report content (meta-scanning)
+        if (this.isScanReportContent(lowerLine)) {
+            logger.debug(`Filtered scan report content: "${value}"`);
+            return true;
+        }
+
         if (this.isJsonSchemaReference(value)) {
             logger.debug(`Filtered JSON schema reference: "${value}"`);
             return true;
@@ -40,6 +50,27 @@ export class FalsePositiveFilter {
 
         // High confidence patterns - only filter if clearly false positive
         if (pattern?.confidence === 'high') {
+            // Special handling for Elasticsearch pattern - filter if it doesn't have ://
+            if (pattern.name === 'Elasticsearch Connection String') {
+                const cleanValue = value.replace(/^["']|["';]+$/g, '').trim();
+                // If it doesn't contain ://, it's definitely not a connection string
+                if (!cleanValue.includes('://')) {
+                    // It's a file path or import, filter it
+                    logger.debug(`Filtered Elasticsearch pattern (no ://): "${value}"`);
+                    return true;
+                }
+                // Even if it has ://, check if it's still a file path
+                if (this.isFilePathOrImportPath(value, lowerLine)) {
+                    logger.debug(`Filtered Elasticsearch pattern (file path): "${value}"`);
+                    return true;
+                }
+                // Additional check: if it starts with "es/" and is in import context, filter it
+                if (cleanValue.startsWith('es/') && (lowerLine.includes('import') || lowerLine.includes('from '))) {
+                    logger.debug(`Filtered Elasticsearch pattern (es/ import path): "${value}"`);
+                    return true;
+                }
+            }
+            
             if (this.isClearlyFalsePositive(value, line)) {
                 logger.debug(`Filtered high-confidence pattern "${pattern.name}": "${value}"`);
                 return true;
@@ -143,6 +174,18 @@ export class FalsePositiveFilter {
             return true;
         }
 
+        // Check for file paths and import statements (e.g., "es/share/", "es/configure-ui")
+        if (this.isFilePathOrImportPath(value, lowerLine)) {
+            logger.debug(`Filtered file path/import: "${value}"`);
+            return true;
+        }
+
+        // Check for enum values or simple identifiers (e.g., "encryption_key" in enum definitions)
+        if (this.isEnumValueOrIdentifier(value, lowerLine, pattern)) {
+            logger.debug(`Filtered enum/identifier: "${value}"`);
+            return true;
+        }
+
         return false;
     }
 
@@ -163,6 +206,11 @@ export class FalsePositiveFilter {
         }
 
         if (value.match(/^[a-zA-Z0-9_-]+\.(js|ts|jsx|tsx|json|css|html|png|jpg|jpeg|gif|svg)$/i)) {
+            return true;
+        }
+
+        // Check for file paths and import statements (e.g., "es/share/", "es/configure-ui")
+        if (this.isFilePathOrImportPath(value, lowerLine)) {
             return true;
         }
 
@@ -270,6 +318,68 @@ export class FalsePositiveFilter {
             lowerLine.includes('log.') || lowerLine.includes('http.') ||
             lowerLine.includes('mux.') || lowerLine.includes('gin.') ||
             lowerLine.includes('echo.') || lowerLine.includes('fiber.');
+    }
+
+    /**
+     * Checks if the line contains scan report content (meta-scanning detection)
+     */
+    private isScanReportContent(lowerLine: string): boolean {
+        // Check for common scan report indicators - comprehensive detection
+        // RTF/scan report format patterns
+        if (lowerLine.includes('hardcoded secrets scan results') ||
+            lowerLine.includes('scan results') ||
+            lowerLine.includes('scan completed at') ||
+            lowerLine.includes('scanner configured') ||
+            lowerLine.includes('potential secrets') ||
+            lowerLine.includes('files scanned') ||
+            lowerLine.includes('found') && lowerLine.includes('secrets') && lowerLine.includes('files')) {
+            return true;
+        }
+        
+        // Report structure patterns
+        if (lowerLine.includes('file:') || 
+            (lowerLine.includes('path:') && (lowerLine.includes('/users/') || lowerLine.includes('/home/'))) ||
+            lowerLine.includes('location: line') ||
+            lowerLine.includes('location:') && lowerLine.match(/line\s+\d+:\d+/) ||
+            lowerLine.includes('value:') && (lowerLine.includes('"es/') || lowerLine.includes("'es/")) ||
+            lowerLine.includes('context:') ||
+            lowerLine.includes('secrets found')) {
+            return true;
+        }
+        
+        // Secret type patterns in reports
+        if ((lowerLine.includes('elasticsearch connection string') ||
+             lowerLine.includes('go secret assignment') ||
+             lowerLine.includes('aws access key') ||
+             lowerLine.includes('aws secret key') ||
+             lowerLine.includes('api key') ||
+             lowerLine.includes('password') ||
+             lowerLine.includes('token')) &&
+            (lowerLine.includes('location:') || 
+             lowerLine.includes('value:') || 
+             lowerLine.includes('context:') ||
+             lowerLine.includes('line'))) {
+            return true;
+        }
+        
+        // RTF format markers
+        if (lowerLine.includes('\\rtf1') ||
+            lowerLine.includes('\\cocoartf') ||
+            lowerLine.includes('\\fonttbl') ||
+            lowerLine.includes('\\colortbl') ||
+            lowerLine.includes('\\paperw') ||
+            lowerLine.includes('\\pard') ||
+            lowerLine.includes('\\f0\\fs24')) {
+            return true;
+        }
+        
+        // Report formatting patterns
+        if (lowerLine.match(/^={20,}$/) || // ==== separator lines
+            lowerLine.includes('=====================================')) {
+            return true;
+        }
+        
+        return false;
     }
 
     private isJsonSchemaReference(value: string): boolean {
@@ -435,6 +545,151 @@ export class FalsePositiveFilter {
         return value.length < minLength || /^[a-z]+$/i.test(value) ||
             lowerValue.includes('true') || lowerValue.includes('false') || lowerValue.includes('null') ||
             lowerValue.includes('undefined') || lowerValue.includes('nan');
+    }
+
+    /**
+     * Checks if value is a file path or import statement (e.g., "es/share/", "es/configure-ui")
+     */
+    private isFilePathOrImportPath(value: string, lowerLine: string): boolean {
+        // Clean the value (remove quotes, semicolons, etc.)
+        const cleanValue = value.replace(/^["']|["';]+$/g, '').trim();
+        const lowerValue = cleanValue.toLowerCase();
+        
+        // Check if it looks like a file path or import path
+        if (cleanValue.includes('/') || cleanValue.includes('\\')) {
+            // Check if it's in an import statement or path configuration
+            const isInImportContext = lowerLine.includes('import') || 
+                lowerLine.includes('from ') || 
+                lowerLine.includes('require(') ||
+                lowerLine.includes('"path"') ||
+                lowerLine.includes('"paths"') ||
+                lowerLine.includes('"include"') ||
+                lowerLine.includes('"exclude"') ||
+                lowerLine.includes('"testmatch"') ||
+                lowerLine.includes('"transform"') ||
+                lowerLine.includes('module') ||
+                lowerLine.includes('alias') ||
+                lowerLine.includes('resolve') ||
+                lowerLine.includes('@akeyless') ||
+                lowerLine.includes('automation/');
+            
+            // If it's in import context, it's definitely a path, not a secret
+            if (isInImportContext) {
+                return true;
+            }
+            
+            // Check for common path patterns
+            // Match paths like: es/path, es/path/to/file, path/to/file.ext
+            const pathPattern = /^[a-zA-Z0-9_-]+(\/[a-zA-Z0-9_.-]+)+(\.[a-zA-Z0-9]+)?$/;
+            
+            // Check for file extensions
+            const hasFileExtension = /\.(ts|tsx|js|jsx|json|constants|types|store|config|test|spec)$/i.test(cleanValue);
+            
+            // Check for common path segments
+            const hasPathSegments = cleanValue.includes('/') && 
+                (cleanValue.includes('.constants') || 
+                 cleanValue.includes('.types') ||
+                 cleanValue.includes('.store') ||
+                 cleanValue.includes('/pages/') ||
+                 cleanValue.includes('/components/') ||
+                 cleanValue.includes('/utils/') ||
+                 cleanValue.includes('/stores/') ||
+                 cleanValue.includes('/types/') ||
+                 cleanValue.includes('/constants/'));
+            
+            // If it has file extension OR has path segments, it's likely a path
+            if (hasFileExtension || hasPathSegments || pathPattern.test(cleanValue)) {
+                // Additional check: if it starts with common path prefixes and doesn't look like a connection string
+                if (!cleanValue.includes('://') && !cleanValue.includes('@') && 
+                    !cleanValue.match(/^[a-z]+:\/\//i)) {
+                    return true;
+                }
+            }
+            
+            // Special case: paths that look like system paths (e.g., android system images)
+            if (lowerValue.includes('android') || 
+                lowerValue.includes('system-images') ||
+                lowerValue.includes('kernel') ||
+                lowerValue.includes('ramdisk') ||
+                lowerValue.includes('/tmp/') ||
+                lowerValue.includes('/users/') ||
+                lowerValue.includes('/home/')) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks if value is an enum value or simple identifier (e.g., "encryption_key" in enum)
+     */
+    private isEnumValueOrIdentifier(value: string, lowerLine: string, pattern?: SecretPattern): boolean {
+        // Check if it's a Go Secret Assignment pattern or similar
+        if (pattern?.name === 'Go Secret Assignment' || pattern?.name === 'Secret') {
+            const lowerValue = value.toLowerCase();
+            
+            // Check if it's a simple identifier (snake_case, kebab-case, camelCase, or plain text)
+            // Allow letters, numbers, hyphens, underscores, and spaces
+            const isSimpleIdentifier = /^[a-zA-Z][a-zA-Z0-9_\s-]*$/.test(value);
+            
+            // Check if it's in a const/let/var declaration context
+            const isInDeclaration = lowerLine.includes('const ') || 
+                lowerLine.includes('let ') || 
+                lowerLine.includes('var ') ||
+                (lowerLine.includes('=') && (lowerLine.includes('const') || lowerLine.includes('let') || lowerLine.includes('var')));
+            
+            // Check if it's a descriptive string (contains spaces, common words)
+            const isDescriptiveString = value.includes(' ') && 
+                (lowerValue.includes('click') || 
+                 lowerValue.includes('fill') || 
+                 lowerValue.includes('enter') ||
+                 lowerValue.includes('select') ||
+                 lowerValue.includes('choose') ||
+                 lowerValue.includes('generate') ||
+                 lowerValue.includes('verify') ||
+                 lowerValue.includes('generated') ||
+                 lowerValue.includes('field') ||
+                 lowerValue.includes('key') ||
+                 lowerValue.includes('private') ||
+                 lowerValue.includes('public') ||
+                 lowerValue.includes('on ') || // "Click on generate token"
+                 lowerValue.includes(' the ') || // "Verify the key"
+                 lowerValue.match(/^[a-z][a-z\s]+$/)); // All lowercase with spaces
+            
+            // Check if it's a kebab-case or snake_case identifier (common in constants/enums)
+            const isKebabOrSnakeCase = /^[a-z][a-z0-9_-]+$/.test(value) && 
+                (value.includes('-') || value.includes('_'));
+            
+            // Common enum/constant identifiers that are definitely not secrets
+            const commonEnumValues = ['encryption_key', 'dynamic_secret', 'rotated_secret', 
+                'static_secret', 'access_key', 'secret_key', 'api_key', 'auth_token'];
+            if (commonEnumValues.includes(lowerValue)) {
+                return true;
+            }
+            
+            // If it's a simple identifier in a declaration context, likely not a secret
+            if (isSimpleIdentifier && isInDeclaration) {
+                // Filter if it's short and doesn't look like a secret
+                if (value.length < 50 && 
+                    !value.includes('://') && 
+                    !value.includes('@') &&
+                    !value.match(/^[a-zA-Z0-9+/=]{20,}$/) && // Not base64-like
+                    !value.match(/^[a-f0-9]{32,}$/i)) { // Not hex hash
+                    return true;
+                }
+            }
+            
+            // Filter descriptive strings (like "Click on generate token", "Verify sub Claims key", "Fill private key")
+            if (isDescriptiveString && value.length < 100) {
+                return true;
+            }
+            
+            // Filter kebab-case/snake_case identifiers that are clearly not secrets
+            if (isKebabOrSnakeCase && value.length < 50 && isInDeclaration) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
