@@ -3,7 +3,6 @@ import { AkeylessCLI } from '../services/akeyless-cli';
 import { SecretsTreeProvider } from '../providers/secrets-tree-provider';
 import { COMMANDS, MESSAGES } from '../constants';
 import { logger } from '../utils/logger';
-import { isValidAccessId, isValidAccessKey } from '../utils/helpers';
 import { STATUS_TYPES } from '../constants';
 import { SecretScanner, HardcodedSecret } from '../utils/secret-scanner';
 
@@ -13,10 +12,16 @@ export class CommandManager {
     private static secretDecorations?: Map<string, vscode.TextEditorDecorationType>;
     private static statusBarItem?: vscode.StatusBarItem;
     
+    private akeylessCLI: AkeylessCLI;
+    private secretsTreeProvider: SecretsTreeProvider;
+    
     constructor(
-        private akeylessCLI: AkeylessCLI,
-        private secretsTreeProvider: SecretsTreeProvider
-    ) {}
+        akeylessCLI: AkeylessCLI,
+        secretsTreeProvider: SecretsTreeProvider
+    ) {
+        this.akeylessCLI = akeylessCLI;
+        this.secretsTreeProvider = secretsTreeProvider;
+    }
 
     /**
      * Registers all commands for the extension
@@ -113,10 +118,6 @@ export class CommandManager {
                 return;
             }
             
-            // Generate a suggested name format for guidance (but don't pre-fill)
-            const fileName = editor.document.fileName.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'secret';
-            const suggestedFormat = `/secrets/${fileName}-${Date.now()}`;
-            
             // Prompt for secret name (empty by default)
             const secretName = await vscode.window.showInputBox({
                 prompt: `Enter a name for this secret in Akeyless`,
@@ -144,7 +145,7 @@ export class CommandManager {
             logger.info(`💾 Creating secret: ${secretName}`);
             
             // Create the secret in Akeyless using create-secret
-            const result = await this.akeylessCLI.createStaticSecret(secretName, confirmText);
+            await this.akeylessCLI.createStaticSecret(secretName, confirmText);
             
             logger.info(`✅ Secret created successfully: ${secretName}`);
             
@@ -935,7 +936,6 @@ export class CommandManager {
             }
             
             let clipboardText = '';
-            const itemName = item.item.item_name.split('/').pop() || item.item.item_name;
             
             if (action === 'Copy Secret Value') {
                 const value = typeof secretValue === 'object' ? JSON.stringify(secretValue) : String(secretValue);
