@@ -3054,5 +3054,441 @@ export const SECRET_PATTERNS: SecretPattern[] = [
         pattern: /(?:dashlane[_-]?api[_-]?key|dashlane[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
         suggestion: 'Dashlane API Key',
         confidence: 'high'
+    },
+
+    // ========== ADDITIONAL PATTERNS - COMPREHENSIVE EXPANSION ==========
+    
+    // Additional Cloud Edge Cases
+    {
+        name: 'AWS CloudFormation Stack Secret',
+        pattern: /(?:aws[_-]?cloudformation[_-]?stack[_-]?secret|cfn[_-]?secret)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'AWS CloudFormation Stack Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'AWS Systems Manager Parameter',
+        pattern: /(?:aws[_-]?systems[_-]?manager[_-]?parameter|ssm[_-]?parameter)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'AWS Systems Manager Parameter',
+        confidence: 'high'
+    },
+    {
+        name: 'AWS Secrets Manager Secret',
+        pattern: /(?:aws[_-]?secrets[_-]?manager[_-]?secret|secretsmanager[_-]?secret)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'AWS Secrets Manager Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Azure App Service Publishing Password',
+        pattern: /(?:azure[_-]?app[_-]?service[_-]?publishing[_-]?password|azure[_-]?publishing[_-]?password)\s*[:=]\s*["']?([a-zA-Z0-9+/=]{40,})["']?/gi,
+        suggestion: 'Azure App Service Publishing Password',
+        confidence: 'high'
+    },
+    {
+        name: 'Azure DevOps Service Connection',
+        pattern: /(?:azure[_-]?devops[_-]?service[_-]?connection|azdo[_-]?service[_-]?connection)\s*[:=]\s*["']?([a-zA-Z0-9+/=]{40,})["']?/gi,
+        suggestion: 'Azure DevOps Service Connection',
+        confidence: 'high'
+    },
+    {
+        name: 'GCP Cloud Build Service Account',
+        pattern: /(?:gcp[_-]?cloud[_-]?build[_-]?service[_-]?account|cloudbuild[_-]?service[_-]?account)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'GCP Cloud Build Service Account',
+        confidence: 'high'
+    },
+    {
+        name: 'GCP Cloud Functions Secret',
+        pattern: /(?:gcp[_-]?cloud[_-]?functions[_-]?secret|cloudfunctions[_-]?secret)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'GCP Cloud Functions Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Alibaba Cloud Access Key Secret',
+        pattern: /(?:alibaba[_-]?cloud[_-]?access[_-]?key[_-]?secret|aliyun[_-]?access[_-]?key[_-]?secret)\s*[:=]\s*["']?([A-Za-z0-9+/=]{30,})["']?/gi,
+        suggestion: 'Alibaba Cloud Access Key Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Tencent Cloud API Secret Key',
+        pattern: /(?:tencent[_-]?cloud[_-]?api[_-]?secret[_-]?key|qcloud[_-]?api[_-]?secret[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9]{32,})["']?/gi,
+        suggestion: 'Tencent Cloud API Secret Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Huawei Cloud Access Key',
+        pattern: /(?:huawei[_-]?cloud[_-]?access[_-]?key|huaweicloud[_-]?access[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9]{32,})["']?/gi,
+        suggestion: 'Huawei Cloud Access Key',
+        confidence: 'high'
+    },
+
+    // Additional Specialized Services
+    {
+        name: 'Figma Personal Access Token',
+        pattern: /(?:figma[_-]?personal[_-]?access[_-]?token|figma[_-]?pat)\s*[:=]\s*["']?(figd_[a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Figma Personal Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Figma Token',
+        pattern: /figd_[a-zA-Z0-9\-_]{40,}/g,
+        suggestion: 'Figma Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Sketch API Token',
+        pattern: /(?:sketch[_-]?api[_-]?token|sketch[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Sketch API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'InVision API Token',
+        pattern: /(?:invision[_-]?api[_-]?token|invision[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'InVision API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Marvel API Key',
+        pattern: /(?:marvel[_-]?api[_-]?key|marvel[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Marvel API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Zeplin API Token',
+        pattern: /(?:zeplin[_-]?api[_-]?token|zeplin[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Zeplin API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Abstract API Token',
+        pattern: /(?:abstract[_-]?api[_-]?token|abstract[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Abstract API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Framer API Key',
+        pattern: /(?:framer[_-]?api[_-]?key|framer[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Framer API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Webflow API Token',
+        pattern: /(?:webflow[_-]?api[_-]?token|webflow[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Webflow API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Bubble API Key',
+        pattern: /(?:bubble[_-]?api[_-]?key|bubble[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Bubble API Key',
+        confidence: 'high'
+    },
+
+    // Additional Video & Streaming Services
+    {
+        name: 'Vimeo API Token',
+        pattern: /(?:vimeo[_-]?api[_-]?token|vimeo[_-]?api)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Vimeo API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'YouTube Data API Key',
+        pattern: /(?:youtube[_-]?data[_-]?api[_-]?key|youtube[_-]?data[_-]?api)\s*[:=]\s*["']?(AIza[0-9A-Za-z\-_]{35})["']?/gi,
+        suggestion: 'YouTube Data API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Twitch Client Secret',
+        pattern: /(?:twitch[_-]?client[_-]?secret|twitch[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32})["']?/gi,
+        suggestion: 'Twitch Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Streamlabs API Key',
+        pattern: /(?:streamlabs[_-]?api[_-]?key|streamlabs[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Streamlabs API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Mux API Token',
+        pattern: /(?:mux[_-]?api[_-]?token|mux[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Mux API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Cloudflare Stream API Token',
+        pattern: /(?:cloudflare[_-]?stream[_-]?api[_-]?token|cf[_-]?stream[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Cloudflare Stream API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'JW Player API Key',
+        pattern: /(?:jw[_-]?player[_-]?api[_-]?key|jwplayer[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'JW Player API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Brightcove API Key',
+        pattern: /(?:brightcove[_-]?api[_-]?key|brightcove[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Brightcove API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Kaltura API Secret',
+        pattern: /(?:kaltura[_-]?api[_-]?secret|kaltura[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Kaltura API Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Daily.co API Key',
+        pattern: /(?:daily[_-]?co[_-]?api[_-]?key|daily[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Daily.co API Key',
+        confidence: 'high'
+    },
+
+    // Additional Blockchain & Crypto Services
+    {
+        name: 'Coinbase API Key',
+        pattern: /(?:coinbase[_-]?api[_-]?key|coinbase[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Coinbase API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Coinbase API Secret',
+        pattern: /(?:coinbase[_-]?api[_-]?secret|coinbase[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Coinbase API Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Binance API Key',
+        pattern: /(?:binance[_-]?api[_-]?key|binance[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Binance API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Binance API Secret',
+        pattern: /(?:binance[_-]?api[_-]?secret|binance[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Binance API Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Kraken API Key',
+        pattern: /(?:kraken[_-]?api[_-]?key|kraken[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Kraken API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Kraken API Secret',
+        pattern: /(?:kraken[_-]?api[_-]?secret|kraken[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Kraken API Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Bitfinex API Key',
+        pattern: /(?:bitfinex[_-]?api[_-]?key|bitfinex[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Bitfinex API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Bitfinex API Secret',
+        pattern: /(?:bitfinex[_-]?api[_-]?secret|bitfinex[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Bitfinex API Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Gemini API Secret',
+        pattern: /(?:gemini[_-]?api[_-]?secret|gemini[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Gemini API Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Poloniex API Key',
+        pattern: /(?:poloniex[_-]?api[_-]?key|poloniex[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Poloniex API Key',
+        confidence: 'high'
+    },
+
+    // Additional Location & Maps Services
+    {
+        name: 'Google Maps API Key (expanded)',
+        pattern: /(?:google[_-]?maps[_-]?api[_-]?key|gmaps[_-]?api[_-]?key|maps[_-]?api[_-]?key)\s*[:=]\s*["']?(AIza[0-9A-Za-z\-_]{35})["']?/gi,
+        suggestion: 'Google Maps API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Mapbox Secret Access Token',
+        pattern: /(?:mapbox[_-]?secret[_-]?access[_-]?token|mapbox[_-]?secret)\s*[:=]\s*["']?(sk\.[a-zA-Z0-9\-_]{60,})["']?/gi,
+        suggestion: 'Mapbox Secret Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Mapbox Secret Token',
+        pattern: /sk\.[a-zA-Z0-9\-_]{60,}/g,
+        suggestion: 'Mapbox Secret Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Here API Key (expanded)',
+        pattern: /(?:here[_-]?api[_-]?key|here[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Here API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'TomTom API Key (expanded)',
+        pattern: /(?:tomtom[_-]?api[_-]?key|tomtom[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'TomTom API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Foursquare Client Secret (expanded)',
+        pattern: /(?:foursquare[_-]?client[_-]?secret|foursquare[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'Foursquare Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Yelp API Key (expanded)',
+        pattern: /(?:yelp[_-]?api[_-]?key|yelp[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'Yelp API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'OpenCage API Key',
+        pattern: /(?:opencage[_-]?api[_-]?key|opencage[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'OpenCage API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Geocodio API Key',
+        pattern: /(?:geocodio[_-]?api[_-]?key|geocodio[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Geocodio API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'SmartyStreets API Key',
+        pattern: /(?:smartystreets[_-]?api[_-]?key|smartystreets[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'SmartyStreets API Key',
+        confidence: 'high'
+    },
+
+    // Additional Form & Survey Services
+    {
+        name: 'Typeform Personal Token',
+        pattern: /(?:typeform[_-]?personal[_-]?token|typeform[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Typeform Personal Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Google Forms API Key',
+        pattern: /(?:google[_-]?forms[_-]?api[_-]?key|googleforms[_-]?api[_-]?key)\s*[:=]\s*["']?(AIza[0-9A-Za-z\-_]{35})["']?/gi,
+        suggestion: 'Google Forms API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'JotForm API Key',
+        pattern: /(?:jotform[_-]?api[_-]?key|jotform[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32})["']?/gi,
+        suggestion: 'JotForm API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Wufoo API Key',
+        pattern: /(?:wufoo[_-]?api[_-]?key|wufoo[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Wufoo API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Formstack API Key',
+        pattern: /(?:formstack[_-]?api[_-]?key|formstack[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Formstack API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'SurveyMonkey API Key',
+        pattern: /(?:surveymonkey[_-]?api[_-]?key|surveymonkey[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'SurveyMonkey API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Qualtrics API Token',
+        pattern: /(?:qualtrics[_-]?api[_-]?token|qualtrics[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Qualtrics API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'LimeSurvey API Key',
+        pattern: /(?:limesurvey[_-]?api[_-]?key|limesurvey[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'LimeSurvey API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Google Sheets API Key',
+        pattern: /(?:google[_-]?sheets[_-]?api[_-]?key|googlesheets[_-]?api[_-]?key)\s*[:=]\s*["']?(AIza[0-9A-Za-z\-_]{35})["']?/gi,
+        suggestion: 'Google Sheets API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Airtable API Key (expanded)',
+        pattern: /(?:airtable[_-]?api[_-]?key|airtable[_-]?key)\s*[:=]\s*["']?(pat[a-zA-Z0-9\-_]{17})["']?/gi,
+        suggestion: 'Airtable API Key',
+        confidence: 'high'
+    },
+
+    // Additional File Storage & CDN
+    {
+        name: 'Dropbox Access Token',
+        pattern: /(?:dropbox[_-]?access[_-]?token|dropbox[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{64})["']?/gi,
+        suggestion: 'Dropbox Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Dropbox App Secret',
+        pattern: /(?:dropbox[_-]?app[_-]?secret|dropbox[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9]{15})["']?/gi,
+        suggestion: 'Dropbox App Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Box API Key',
+        pattern: /(?:box[_-]?api[_-]?key|box[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32})["']?/gi,
+        suggestion: 'Box API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Box Client Secret',
+        pattern: /(?:box[_-]?client[_-]?secret|box[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9]{32})["']?/gi,
+        suggestion: 'Box Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'OneDrive Client Secret',
+        pattern: /(?:onedrive[_-]?client[_-]?secret|onedrive[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'OneDrive Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Google Drive API Key',
+        pattern: /(?:google[_-]?drive[_-]?api[_-]?key|googledrive[_-]?api[_-]?key)\s*[:=]\s*["']?(AIza[0-9A-Za-z\-_]{35})["']?/gi,
+        suggestion: 'Google Drive API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Amazon S3 Secret Access Key',
+        pattern: /(?:amazon[_-]?s3[_-]?secret[_-]?access[_-]?key|s3[_-]?secret[_-]?access[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9+/]{40})["']?/gi,
+        suggestion: 'Amazon S3 Secret Access Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Wasabi Secret Access Key',
+        pattern: /(?:wasabi[_-]?secret[_-]?access[_-]?key|wasabi[_-]?secret)\s*[:=]\s*["']?([A-Za-z0-9+/]{40})["']?/gi,
+        suggestion: 'Wasabi Secret Access Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Backblaze B2 Application Key ID',
+        pattern: /(?:backblaze[_-]?b2[_-]?application[_-]?key[_-]?id|b2[_-]?app[_-]?key[_-]?id)\s*[:=]\s*["']?([a-zA-Z0-9]{25})["']?/gi,
+        suggestion: 'Backblaze B2 Application Key ID',
+        confidence: 'high'
+    },
+    {
+        name: 'MinIO Access Key',
+        pattern: /(?:minio[_-]?access[_-]?key|minio[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9]{20})["']?/gi,
+        suggestion: 'MinIO Access Key',
+        confidence: 'high'
     }
 ];
