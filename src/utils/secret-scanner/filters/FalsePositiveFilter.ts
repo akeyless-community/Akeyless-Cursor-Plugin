@@ -186,6 +186,18 @@ export class FalsePositiveFilter {
             return true;
         }
 
+        // Check for placeholder/example secret names
+        if (this.isPlaceholderSecretName(value)) {
+            logger.debug(`Filtered placeholder secret name: "${value}"`);
+            return true;
+        }
+
+        // Check for secret name references (not secret values)
+        if (this.isSecretNameReference(value, lowerLine)) {
+            logger.debug(`Filtered secret name reference: "${value}"`);
+            return true;
+        }
+
         return false;
     }
 
@@ -532,9 +544,46 @@ export class FalsePositiveFilter {
     }
 
     private isEnvironmentVariableName(value: string): boolean {
-        return value.includes('_') && value === value.toUpperCase() &&
-            (value.includes('AWS_') || value.includes('GCP_') || value.includes('AZURE_') ||
-             value.includes('DATABASE_') || value.includes('API_') || value.includes('SECRET_'));
+        // Generic pattern: ALL_CAPS with underscores (environment variable naming convention)
+        if (/^[A-Z][A-Z0-9_]+$/.test(value) && value.includes('_')) {
+            // Must be reasonable length for a variable name
+            if (value.length >= 5 && value.length < 60) {
+                // Check if it contains common variable name patterns
+                // Pattern: contains common suffixes/words that indicate it's a variable name
+                const variableNameIndicators = [
+                    /_URL$/i,
+                    /_PATH$/i,
+                    /_NAME$/i,
+                    /_ID$/i,
+                    /_KEY$/i,
+                    /_SECRET$/i,
+                    /_TOKEN$/i,
+                    /_PASSWORD$/i,
+                    /_HOST$/i,
+                    /_PORT$/i,
+                    /_VERSION$/i,
+                    /_CONFIG$/i,
+                    /_CONF$/i,
+                    /_ENV$/i,
+                    /_REPO$/i,
+                    /_ACCESS$/i,
+                    /_AUTH$/i,
+                    /^[A-Z]+_[A-Z]+/  // Pattern: PREFIX_SUFFIX
+                ];
+                
+                // If it matches common variable name patterns, it's likely a variable name
+                if (variableNameIndicators.some(pattern => pattern.test(value))) {
+                    return true;
+                }
+                
+                // Generic: if it's ALL_CAPS with multiple underscores (likely a variable name)
+                const underscoreCount = (value.match(/_/g) || []).length;
+                if (underscoreCount >= 2 && value.length > 8) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private isSimpleValue(value: string, lowerValue: string, pattern?: SecretPattern): boolean {
@@ -689,6 +738,118 @@ export class FalsePositiveFilter {
                 return true;
             }
         }
+        return false;
+    }
+
+    /**
+     * Checks if value is a placeholder/example secret name using generic patterns
+     */
+    private isPlaceholderSecretName(value: string): boolean {
+        const lowerValue = value.toLowerCase();
+        
+        // Generic pattern: starts with common placeholder prefixes
+        // Pattern: "my_*", "my-*", "your_*", "your-*", "test_*", "test-*", "example_*", "example-*"
+        if (/^(my|your|test|example|sample|demo|placeholder)[-_]/.test(lowerValue)) {
+            return true;
+        }
+        
+        // Generic pattern: "name-of-existing-*" or "name_of_existing_*"
+        if (/^name[-_]of[-_]existing/.test(lowerValue)) {
+            return true;
+        }
+        
+        // Generic pattern: contains placeholder indicators followed by secret-related words
+        const placeholderWords = ['example', 'sample', 'placeholder', 'test', 'demo', 'dummy', 'fake'];
+        const secretWords = ['secret', 'key', 'token', 'password', 'credential', 'auth'];
+        
+        for (const placeholder of placeholderWords) {
+            if (lowerValue.includes(placeholder)) {
+                // Check if it's followed by a secret-related word
+                for (const secret of secretWords) {
+                    if (lowerValue.includes(secret)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        // Generic pattern: very short kebab-case/snake_case that looks like a placeholder
+        // e.g., "test-secret", "demo-key" (2-3 words, short)
+        if (/^[a-z]+[-_][a-z]+$/.test(lowerValue) && value.length < 25) {
+            const words = lowerValue.split(/[-_]/);
+            // If it contains common placeholder words or is very generic
+            if (words.some(w => placeholderWords.includes(w) || secretWords.includes(w))) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Checks if value is a secret name reference (not the secret value itself) using generic patterns
+     * e.g., "akeyless-auth" in YAML config: gatewayCredentialsExistingSecret: akeyless-auth
+     */
+    private isSecretNameReference(value: string, lowerLine: string): boolean {
+        const lowerLineLower = lowerLine.toLowerCase();
+        
+        // Generic pattern: check if it's in a context that suggests it's a secret name reference
+        // Look for patterns like: *secret*, *credential*, *key*, *auth* followed by colon/equals
+        const secretNameContextPatterns = [
+            /existing[-_]?secret/i,
+            /secret[-_]?name/i,
+            /secret[-_]?ref/i,
+            /credential[-_]?secret/i,
+            /.*secret\s*[:=]/i,  // "secret:" or "secret="
+            /.*credential.*\s*[:=]/i,
+            /.*key.*\s*[:=]/i,
+            /.*auth.*\s*[:=]/i
+        ];
+        
+        const isSecretNameContext = secretNameContextPatterns.some(pattern => pattern.test(lowerLineLower));
+        
+        // Generic pattern: kebab-case or snake_case identifier that looks like a name reference
+        if (isSecretNameContext) {
+            // Pattern: kebab-case or snake_case (lowercase with hyphens/underscores)
+            // Short to medium length, descriptive (not a hash or token)
+            if (/^[a-z][a-z0-9_-]+$/.test(value) && 
+                value.length >= 5 && value.length < 60 &&
+                (value.includes('-') || value.includes('_'))) {
+                // Check if it looks like a name, not a secret value
+                if (!value.includes('://') && 
+                    !value.includes('@') && 
+                    !value.match(/^[a-zA-Z0-9+/=]{20,}$/) && // Not base64-like
+                    !value.match(/^[a-f0-9]{32,}$/i) && // Not hex hash
+                    !value.match(/^[a-zA-Z0-9]{40,}$/)) { // Not long alphanumeric token
+                    // Additional check: if it's in a YAML/config context and looks descriptive
+                    if (lowerLineLower.includes('.yaml') || 
+                        lowerLineLower.includes('.yml') ||
+                        lowerLineLower.includes('values') ||
+                        lowerLineLower.includes('config')) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        // Generic pattern: very short kebab-case identifiers (likely names, not values)
+        // e.g., "akeyless-auth", "gw-metrics" (2-4 words, descriptive)
+        if (/^[a-z]+([-_][a-z]+){1,3}$/.test(value) && value.length < 40) {
+            // Check if it's in a config/YAML context
+            if (isSecretNameContext || 
+                lowerLineLower.includes('.yaml') || 
+                lowerLineLower.includes('.yml') ||
+                lowerLineLower.includes('values') ||
+                lowerLineLower.includes('config') ||
+                lowerLineLower.includes('helm')) {
+                // Make sure it doesn't look like a secret value
+                if (!value.match(/^[a-zA-Z0-9+/=]{20,}$/) && 
+                    !value.match(/^[a-f0-9]{32,}$/i)) {
+                    return true;
+                }
+            }
+        }
+        
         return false;
     }
 }

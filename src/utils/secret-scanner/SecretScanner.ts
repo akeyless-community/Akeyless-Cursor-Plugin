@@ -365,10 +365,22 @@ export class SecretScanner {
             (lowerText.includes('file:') && lowerText.includes('path:') && 
              lowerText.includes('location: line') && lowerText.includes('value:'))) {
             // Additional check: if it has multiple "FILE:" entries, it's definitely a report
-            const fileMatches = (lowerText.match(/file:/g) || []).length;
-            if (fileMatches >= 3) {
+            const fileMatches = (lowerText.match(/file:/gi) || []).length;
+            if (fileMatches >= 2) {
                 return true;
             }
+        }
+        
+        // Check for scan report structure (even with fewer FILE: entries)
+        // Pattern: FILE: ... Path: ... Location: Line ... Value: ... Context: ...
+        const hasReportStructure = lowerText.includes('file:') &&
+            lowerText.includes('path:') &&
+            (lowerText.includes('location:') || lowerText.includes('location: line')) &&
+            lowerText.includes('value:') &&
+            (lowerText.includes('context:') || lowerText.includes('scan completed'));
+        
+        if (hasReportStructure) {
+            return true;
         }
         
         return false;
