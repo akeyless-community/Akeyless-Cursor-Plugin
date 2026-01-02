@@ -2102,5 +2102,447 @@ export const SECRET_PATTERNS: SecretPattern[] = [
         pattern: /(?:trello[_-]?api[_-]?token|trello[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{64,})["']?/gi,
         suggestion: 'Trello API Token',
         confidence: 'high'
+    },
+
+    // ========== ADDITIONAL PATTERNS - EXPANDED COVERAGE ==========
+    
+    // Additional Cloud Services
+    {
+        name: 'Cloudflare API Token (alternative format)',
+        pattern: /(?:cloudflare[_-]?api[_-]?token|cf[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{37})["']?/gi,
+        suggestion: 'Cloudflare API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'AWS CodeCommit Credential',
+        pattern: /(?:aws[_-]?codecommit[_-]?credential|codecommit[_-]?credential)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'AWS CodeCommit Credential',
+        confidence: 'high'
+    },
+    {
+        name: 'AWS Elastic Beanstalk Token',
+        pattern: /(?:aws[_-]?elastic[_-]?beanstalk[_-]?token|eb[_-]?token)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'AWS Elastic Beanstalk Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Azure AD Client Secret',
+        pattern: /(?:azure[_-]?ad[_-]?client[_-]?secret|azuread[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9+/]{40,})["']?/gi,
+        suggestion: 'Azure AD Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Azure AD Application Secret',
+        pattern: /(?:azure[_-]?ad[_-]?application[_-]?secret|azuread[_-]?app[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9+/]{40,})["']?/gi,
+        suggestion: 'Azure AD Application Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'GCP OAuth Client ID',
+        pattern: /(?:gcp[_-]?oauth[_-]?client[_-]?id|google[_-]?oauth[_-]?client[_-]?id)\s*[:=]\s*["']?([0-9]+-[a-zA-Z0-9]+\.apps\.googleusercontent\.com)["']?/gi,
+        suggestion: 'GCP OAuth Client ID',
+        confidence: 'high'
+    },
+    {
+        name: 'GCP OAuth Client Secret',
+        pattern: /(?:gcp[_-]?oauth[_-]?client[_-]?secret|google[_-]?oauth[_-]?client[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{24,})["']?/gi,
+        suggestion: 'GCP OAuth Client Secret',
+        confidence: 'high'
+    },
+
+    // Additional Database Patterns
+    {
+        name: 'SQL Server Connection String',
+        pattern: /(?:sql[_-]?server[_-]?connection|mssql[_-]?connection)\s*[:=]\s*["']?(Server=[^;]+;Database=[^;]+;User\s+Id=[^;]+;Password=[^;]+)["']?/gi,
+        suggestion: 'SQL Server Connection String',
+        confidence: 'high'
+    },
+    {
+        name: 'Oracle Connection String',
+        pattern: /(?:oracle[_-]?connection|oracle[_-]?connection[_-]?string)\s*[:=]\s*["']?(oracle:\/\/[^"']+)["']?/gi,
+        suggestion: 'Oracle Connection String',
+        confidence: 'high'
+    },
+    {
+        name: 'SQLite Database Path',
+        pattern: /(?:sqlite[_-]?database|sqlite[_-]?db)\s*[:=]\s*["']?([^"']+\.db)["']?/gi,
+        suggestion: 'SQLite Database Path',
+        confidence: 'medium'
+    },
+    {
+        name: 'MariaDB Connection String',
+        pattern: /(?:mariadb[_-]?connection|mariadb[_-]?connection[_-]?string)\s*[:=]\s*["']?(mariadb:\/\/[^"']+)["']?/gi,
+        suggestion: 'MariaDB Connection String',
+        confidence: 'high'
+    },
+    {
+        name: 'Cassandra Password',
+        pattern: /(?:cassandra[_-]?password|cassandra[_-]?pass)\s*[:=]\s*["']?([^"' \t\r\n]{8,})["']?/gi,
+        suggestion: 'Cassandra Password',
+        confidence: 'medium'
+    },
+
+    // Additional Email Services
+    {
+        name: 'Amazon SES Access Key',
+        pattern: /(?:amazon[_-]?ses[_-]?access[_-]?key|ses[_-]?access[_-]?key)\s*[:=]\s*["']?([A-Z0-9]{20})["']?/gi,
+        suggestion: 'Amazon SES Access Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Amazon SES Secret Key',
+        pattern: /(?:amazon[_-]?ses[_-]?secret[_-]?key|ses[_-]?secret[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9+/]{40})["']?/gi,
+        suggestion: 'Amazon SES Secret Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Postmark Server API Token',
+        pattern: /(?:postmark[_-]?server[_-]?api[_-]?token|postmark[_-]?server[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9]{24,})["']?/gi,
+        suggestion: 'Postmark Server API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'SparkPost API Key (alternative)',
+        pattern: /(?:sparkpost[_-]?api[_-]?key|sparkpost[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{64,})["']?/gi,
+        suggestion: 'SparkPost API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Mailgun Domain API Key',
+        pattern: /(?:mailgun[_-]?domain[_-]?api[_-]?key|mailgun[_-]?domain[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32})["']?/gi,
+        suggestion: 'Mailgun Domain API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'SendGrid API Key (alternative)',
+        pattern: /SG\.[A-Za-z0-9\-_]{22}\.[A-Za-z0-9\-_]{43}/g,
+        suggestion: 'SendGrid API Key',
+        confidence: 'high'
+    },
+
+    // Additional Social Media & Marketing
+    {
+        name: 'Facebook Access Token (alternative)',
+        pattern: /EAAB[a-zA-Z0-9]{100,}/g,
+        suggestion: 'Facebook Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Instagram Basic Display API Token',
+        pattern: /(?:instagram[_-]?basic[_-]?display[_-]?api[_-]?token|ig[_-]?basic[_-]?display[_-]?token)\s*[:=]\s*["']?([0-9]{10,}\.[a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Instagram Basic Display API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'TikTok Access Token',
+        pattern: /(?:tiktok[_-]?access[_-]?token|tiktok[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'TikTok Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Snapchat API Key',
+        pattern: /(?:snapchat[_-]?api[_-]?key|snapchat[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Snapchat API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'YouTube API Key',
+        pattern: /(?:youtube[_-]?api[_-]?key|yt[_-]?api[_-]?key)\s*[:=]\s*["']?(AIza[0-9A-Za-z\-_]{35})["']?/gi,
+        suggestion: 'YouTube API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Vimeo Access Token',
+        pattern: /(?:vimeo[_-]?access[_-]?token|vimeo[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Vimeo Access Token',
+        confidence: 'high'
+    },
+
+    // Additional Payment & E-commerce
+    {
+        name: 'WooCommerce API Key',
+        pattern: /(?:woocommerce[_-]?api[_-]?key|wc[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'WooCommerce API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'WooCommerce Secret',
+        pattern: /(?:woocommerce[_-]?secret|wc[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'WooCommerce Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'BigCommerce API Token',
+        pattern: /(?:bigcommerce[_-]?api[_-]?token|bigcommerce[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'BigCommerce API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Magento Access Token',
+        pattern: /(?:magento[_-]?access[_-]?token|magento[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Magento Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'PrestaShop API Key',
+        pattern: /(?:prestashop[_-]?api[_-]?key|prestashop[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'PrestaShop API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Square Application ID',
+        pattern: /(?:square[_-]?application[_-]?id|square[_-]?app[_-]?id)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Square Application ID',
+        confidence: 'high'
+    },
+
+    // Additional Development Tools
+    {
+        name: 'JetBrains Space API Token',
+        pattern: /(?:jetbrains[_-]?space[_-]?api[_-]?token|space[_-]?api[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'JetBrains Space API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'JetBrains YouTrack Token',
+        pattern: /(?:jetbrains[_-]?youtrack[_-]?token|youtrack[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'JetBrains YouTrack Token',
+        confidence: 'high'
+    },
+    {
+        name: 'SonarQube Token',
+        pattern: /(?:sonarqube[_-]?token|sonar[_-]?token)\s*[:=]\s*["']?([a-f0-9]{40})["']?/gi,
+        suggestion: 'SonarQube Token',
+        confidence: 'high'
+    },
+    {
+        name: 'CodeClimate API Token',
+        pattern: /(?:codeclimate[_-]?api[_-]?token|codeclimate[_-]?token)\s*[:=]\s*["']?([a-f0-9]{40})["']?/gi,
+        suggestion: 'CodeClimate API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Coveralls API Token',
+        pattern: /(?:coveralls[_-]?api[_-]?token|coveralls[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Coveralls API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Codacy API Token',
+        pattern: /(?:codacy[_-]?api[_-]?token|codacy[_-]?token)\s*[:=]\s*["']?([a-f0-9]{32})["']?/gi,
+        suggestion: 'Codacy API Token',
+        confidence: 'high'
+    },
+
+    // Additional Infrastructure & DevOps
+    {
+        name: 'Docker Hub Password',
+        pattern: /(?:docker[_-]?hub[_-]?password|dockerhub[_-]?password)\s*[:=]\s*["']?([^"' \t\r\n]{8,})["']?/gi,
+        suggestion: 'Docker Hub Password',
+        confidence: 'medium'
+    },
+    {
+        name: 'Docker Registry Auth Token',
+        pattern: /(?:docker[_-]?registry[_-]?auth[_-]?token|docker[_-]?registry[_-]?token)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'Docker Registry Auth Token',
+        confidence: 'high'
+    },
+    {
+        name: 'HashiCorp Vault Token',
+        pattern: /(?:hashicorp[_-]?vault[_-]?token|vault[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'HashiCorp Vault Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Consul ACL Token',
+        pattern: /(?:consul[_-]?acl[_-]?token|consul[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{36})["']?/gi,
+        suggestion: 'Consul ACL Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Nomad Token',
+        pattern: /(?:nomad[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{36})["']?/gi,
+        suggestion: 'Nomad Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Nomad Secret ID',
+        pattern: /(?:nomad[_-]?secret[_-]?id)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{36})["']?/gi,
+        suggestion: 'Nomad Secret ID',
+        confidence: 'high'
+    },
+
+    // Additional Messaging Services
+    {
+        name: 'Microsoft Teams Bot Token',
+        pattern: /(?:microsoft[_-]?teams[_-]?bot[_-]?token|teams[_-]?bot[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Microsoft Teams Bot Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Zoom API Key',
+        pattern: /(?:zoom[_-]?api[_-]?key|zoom[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Zoom API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Zoom API Secret',
+        pattern: /(?:zoom[_-]?api[_-]?secret|zoom[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Zoom API Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Microsoft Teams App Secret',
+        pattern: /(?:microsoft[_-]?teams[_-]?app[_-]?secret|teams[_-]?app[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Microsoft Teams App Secret',
+        confidence: 'high'
+    },
+
+    // Additional Content & Media Services
+    {
+        name: 'Cloudinary Cloud Name',
+        pattern: /(?:cloudinary[_-]?cloud[_-]?name|cloudinary[_-]?name)\s*[:=]\s*["']?([a-z0-9]+)["']?/gi,
+        suggestion: 'Cloudinary Cloud Name',
+        confidence: 'medium'
+    },
+    {
+        name: 'Cloudinary API Secret (expanded)',
+        pattern: /(?:cloudinary[_-]?api[_-]?secret|cloudinary[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'Cloudinary API Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Imgur Client ID',
+        pattern: /(?:imgur[_-]?client[_-]?id|imgur[_-]?id)\s*[:=]\s*["']?([a-zA-Z0-9]{56})["']?/gi,
+        suggestion: 'Imgur Client ID',
+        confidence: 'high'
+    },
+    {
+        name: 'Imgur Client Secret',
+        pattern: /(?:imgur[_-]?client[_-]?secret|imgur[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9]{40})["']?/gi,
+        suggestion: 'Imgur Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Unsplash Access Key',
+        pattern: /(?:unsplash[_-]?access[_-]?key|unsplash[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{43})["']?/gi,
+        suggestion: 'Unsplash Access Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Pexels API Key',
+        pattern: /(?:pexels[_-]?api[_-]?key|pexels[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{56})["']?/gi,
+        suggestion: 'Pexels API Key',
+        confidence: 'high'
+    },
+
+    // Additional Obfuscated/Encoded Patterns
+    {
+        name: 'Base64 Encoded Secret',
+        pattern: /(?:secret|key|token|password|auth)[\s:=]+["']?([A-Za-z0-9+/]{50,}={0,2})["']?/gi,
+        suggestion: 'Base64 Encoded Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'Hex Encoded Secret',
+        pattern: /(?:secret|key|token|password|auth)[\s:=]+["']?([a-f0-9]{40,})["']?/gi,
+        suggestion: 'Hex Encoded Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'URL Encoded Secret',
+        pattern: /(?:secret|key|token|password|auth)[\s:=]+["']?([%0-9A-Fa-f]{40,})["']?/gi,
+        suggestion: 'URL Encoded Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'Obfuscated Password',
+        pattern: /(?:password|passwd|pwd)[\s:=]+["']?([A-Za-z0-9+/=]{20,})["']?/gi,
+        suggestion: 'Obfuscated Password',
+        confidence: 'medium'
+    },
+
+    // Additional Regional Services
+    {
+        name: 'Alipay App ID',
+        pattern: /(?:alipay[_-]?app[_-]?id|alipay[_-]?id)\s*[:=]\s*["']?([0-9]{16})["']?/gi,
+        suggestion: 'Alipay App ID',
+        confidence: 'high'
+    },
+    {
+        name: 'Alipay Private Key',
+        pattern: /(?:alipay[_-]?private[_-]?key|alipay[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9+/=]{100,})["']?/gi,
+        suggestion: 'Alipay Private Key',
+        confidence: 'high'
+    },
+    {
+        name: 'WeChat Pay API Key',
+        pattern: /(?:wechat[_-]?pay[_-]?api[_-]?key|wechatpay[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32})["']?/gi,
+        suggestion: 'WeChat Pay API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Razorpay Key ID',
+        pattern: /(?:razorpay[_-]?key[_-]?id|rzp[_-]?key[_-]?id)\s*[:=]\s*["']?(rzp_[a-zA-Z0-9]{14})["']?/gi,
+        suggestion: 'Razorpay Key ID',
+        confidence: 'high'
+    },
+    {
+        name: 'Razorpay Key Secret',
+        pattern: /(?:razorpay[_-]?key[_-]?secret|rzp[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'Razorpay Key Secret',
+        confidence: 'high'
+    },
+
+    // Additional Testing & QA Tools
+    {
+        name: 'BrowserStack Access Key',
+        pattern: /(?:browserstack[_-]?access[_-]?key|browserstack[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{20})["']?/gi,
+        suggestion: 'BrowserStack Access Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Sauce Labs Access Key',
+        pattern: /(?:saucelabs[_-]?access[_-]?key|saucelabs[_-]?key)\s*[:=]\s*["']?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})["']?/gi,
+        suggestion: 'Sauce Labs Access Key',
+        confidence: 'high'
+    },
+    {
+        name: 'LambdaTest Access Key',
+        pattern: /(?:lambdatest[_-]?access[_-]?key|lambdatest[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{20,})["']?/gi,
+        suggestion: 'LambdaTest Access Key',
+        confidence: 'high'
+    },
+    {
+        name: 'TestRail API Key',
+        pattern: /(?:testrail[_-]?api[_-]?key|testrail[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'TestRail API Key',
+        confidence: 'high'
+    },
+
+    // Additional Analytics & Tracking
+    {
+        name: 'Google Tag Manager API Key',
+        pattern: /(?:google[_-]?tag[_-]?manager[_-]?api[_-]?key|gtm[_-]?api[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Google Tag Manager API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Adobe Analytics API Key',
+        pattern: /(?:adobe[_-]?analytics[_-]?api[_-]?key|adobe[_-]?analytics[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Adobe Analytics API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Adobe IMS Access Token',
+        pattern: /(?:adobe[_-]?ims[_-]?access[_-]?token|adobe[_-]?ims[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{100,})["']?/gi,
+        suggestion: 'Adobe IMS Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Adobe Creative SDK Client Secret',
+        pattern: /(?:adobe[_-]?creative[_-]?sdk[_-]?client[_-]?secret|adobe[_-]?creative[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Adobe Creative SDK Client Secret',
+        confidence: 'high'
     }
 ];
