@@ -2,7 +2,7 @@
   "name": "akeyless-secrets-manager",
   "displayName": "Akeyless Secrets Manager",
   "description": "Find and fix hardcoded secrets in your code by integrating directly with Akeyless. Now with auto-scan on save!",
-  "version": "1.1.3",
+  "version": "1.1.13",
   "publisher": "Akeyless",
   "license": "MIT",
   "repository": {
@@ -233,7 +233,7 @@
     "watch": "tsc -watch -p ./",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "package": "vsce package",
+    "package": "vsce package --allow-package-secrets github --allow-package-secrets slack --allow-package-secrets privatekey",
     "dev": "./scripts/dev.sh"
   },
   "devDependencies": {

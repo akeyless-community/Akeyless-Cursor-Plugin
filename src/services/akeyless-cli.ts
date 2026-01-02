@@ -1,9 +1,17 @@
 import { AkeylessItem } from '../types';
 import { logger } from '../utils/logger';
 import { promisify } from 'util';
-import { exec } from 'child_process';
+import { exec, ExecOptions } from 'child_process';
 
-const execAsync = promisify(exec);
+// Create exec function with increased maxBuffer to handle large secret lists
+const execWithBuffer = (command: string, options?: ExecOptions) => {
+    return promisify(exec)(command, {
+        maxBuffer: 50 * 1024 * 1024, // 50MB buffer to handle large secret lists
+        ...options
+    });
+};
+
+const execAsync = execWithBuffer;
 
 export class AkeylessCLI {
     constructor() {

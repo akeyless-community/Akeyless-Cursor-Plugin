@@ -16,3 +16,9 @@ Thumbs.db
 # IDE
 .vscode-test/
 *.code-workspace
+
+# Test files with fake secrets
+test/
+test-secrets.js
+test-secrets.py
+test-secrets.json

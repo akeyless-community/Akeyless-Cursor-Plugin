@@ -1,0 +1,6 @@
+# Test files with fake secrets
+test/
+test-secrets.js
+test-secrets.py
+test-secrets.json
+
