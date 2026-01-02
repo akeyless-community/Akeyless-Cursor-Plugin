@@ -2544,5 +2544,515 @@ export const SECRET_PATTERNS: SecretPattern[] = [
         pattern: /(?:adobe[_-]?creative[_-]?sdk[_-]?client[_-]?secret|adobe[_-]?creative[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
         suggestion: 'Adobe Creative SDK Client Secret',
         confidence: 'high'
+    },
+
+    // ========== ADDITIONAL PATTERNS - FURTHER EXPANSION ==========
+    
+    // Additional Cloud & Infrastructure
+    {
+        name: 'AWS CodeDeploy Access Key',
+        pattern: /(?:aws[_-]?codedeploy[_-]?access[_-]?key|codedeploy[_-]?access[_-]?key)\s*[:=]\s*["']?([A-Z0-9]{20})["']?/gi,
+        suggestion: 'AWS CodeDeploy Access Key',
+        confidence: 'high'
+    },
+    {
+        name: 'AWS CodePipeline Token',
+        pattern: /(?:aws[_-]?codepipeline[_-]?token|codepipeline[_-]?token)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'AWS CodePipeline Token',
+        confidence: 'high'
+    },
+    {
+        name: 'AWS Lambda Function Secret',
+        pattern: /(?:aws[_-]?lambda[_-]?function[_-]?secret|lambda[_-]?secret)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'AWS Lambda Function Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'AWS ECS Task Secret',
+        pattern: /(?:aws[_-]?ecs[_-]?task[_-]?secret|ecs[_-]?secret)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'AWS ECS Task Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'AWS EKS Cluster Secret',
+        pattern: /(?:aws[_-]?eks[_-]?cluster[_-]?secret|eks[_-]?secret)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'AWS EKS Cluster Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Azure Key Vault Secret',
+        pattern: /(?:azure[_-]?key[_-]?vault[_-]?secret|keyvault[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9+/=]{40,})["']?/gi,
+        suggestion: 'Azure Key Vault Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Azure Container Registry Password',
+        pattern: /(?:azure[_-]?container[_-]?registry[_-]?password|acr[_-]?password)\s*[:=]\s*["']?([a-zA-Z0-9+/=]{40,})["']?/gi,
+        suggestion: 'Azure Container Registry Password',
+        confidence: 'high'
+    },
+    {
+        name: 'GCP Cloud SQL Password',
+        pattern: /(?:gcp[_-]?cloud[_-]?sql[_-]?password|cloudsql[_-]?password)\s*[:=]\s*["']?([^"' \t\r\n]{8,})["']?/gi,
+        suggestion: 'GCP Cloud SQL Password',
+        confidence: 'high'
+    },
+    {
+        name: 'GCP Cloud Storage Key',
+        pattern: /(?:gcp[_-]?cloud[_-]?storage[_-]?key|gcs[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'GCP Cloud Storage Key',
+        confidence: 'high'
+    },
+    {
+        name: 'DigitalOcean Spaces Secret Key',
+        pattern: /(?:digitalocean[_-]?spaces[_-]?secret[_-]?key|do[_-]?spaces[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9+/=]{40,})["']?/gi,
+        suggestion: 'DigitalOcean Spaces Secret Key',
+        confidence: 'high'
+    },
+
+    // Additional Database & Data Services
+    {
+        name: 'Snowflake Account Password',
+        pattern: /(?:snowflake[_-]?account[_-]?password|snowflake[_-]?password)\s*[:=]\s*["']?([^"' \t\r\n]{8,})["']?/gi,
+        suggestion: 'Snowflake Account Password',
+        confidence: 'high'
+    },
+    {
+        name: 'Snowflake Private Key',
+        pattern: /(?:snowflake[_-]?private[_-]?key|snowflake[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9+/=]{100,})["']?/gi,
+        suggestion: 'Snowflake Private Key',
+        confidence: 'high'
+    },
+    {
+        name: 'BigQuery Service Account Key',
+        pattern: /(?:bigquery[_-]?service[_-]?account[_-]?key|bigquery[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'BigQuery Service Account Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Databricks Personal Access Token',
+        pattern: /(?:databricks[_-]?personal[_-]?access[_-]?token|databricks[_-]?pat)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Databricks Personal Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Databricks Token',
+        pattern: /dapi[a-zA-Z0-9\-_]{32,}/g,
+        suggestion: 'Databricks Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Tableau Personal Access Token',
+        pattern: /(?:tableau[_-]?personal[_-]?access[_-]?token|tableau[_-]?pat)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Tableau Personal Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Power BI API Key',
+        pattern: /(?:power[_-]?bi[_-]?api[_-]?key|powerbi[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Power BI API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'MongoDB Atlas API Key',
+        pattern: /(?:mongodb[_-]?atlas[_-]?api[_-]?key|atlas[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'MongoDB Atlas API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Redis Labs API Key',
+        pattern: /(?:redis[_-]?labs[_-]?api[_-]?key|redislabs[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Redis Labs API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Elastic Cloud API Key',
+        pattern: /(?:elastic[_-]?cloud[_-]?api[_-]?key|elasticcloud[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Elastic Cloud API Key',
+        confidence: 'high'
+    },
+
+    // Additional SaaS & Productivity Tools
+    {
+        name: 'ClickUp API Token',
+        pattern: /(?:clickup[_-]?api[_-]?token|clickup[_-]?token)\s*[:=]\s*["']?(pk_[a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'ClickUp API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'ClickUp Token',
+        pattern: /pk_[a-zA-Z0-9\-_]{40,}/g,
+        suggestion: 'ClickUp Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Wrike API Token',
+        pattern: /(?:wrike[_-]?api[_-]?token|wrike[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Wrike API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Smartsheet Access Token',
+        pattern: /(?:smartsheet[_-]?access[_-]?token|smartsheet[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Smartsheet Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Airtable Personal Access Token (expanded)',
+        pattern: /pat[a-zA-Z0-9\-_]{17}/g,
+        suggestion: 'Airtable Personal Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Notion Integration Token (expanded)',
+        pattern: /secret_[a-zA-Z0-9\-_]{32,}/g,
+        suggestion: 'Notion Integration Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Coda API Token',
+        pattern: /(?:coda[_-]?api[_-]?token|coda[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Coda API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Roam Research API Key',
+        pattern: /(?:roam[_-]?research[_-]?api[_-]?key|roam[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Roam Research API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Obsidian API Key',
+        pattern: /(?:obsidian[_-]?api[_-]?key|obsidian[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Obsidian API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Evernote API Token',
+        pattern: /(?:evernote[_-]?api[_-]?token|evernote[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Evernote API Token',
+        confidence: 'high'
+    },
+
+    // Additional Communication & Collaboration
+    {
+        name: 'Microsoft Graph API Secret',
+        pattern: /(?:microsoft[_-]?graph[_-]?api[_-]?secret|graph[_-]?api[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Microsoft Graph API Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Microsoft 365 Client Secret',
+        pattern: /(?:microsoft[_-]?365[_-]?client[_-]?secret|m365[_-]?client[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Microsoft 365 Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Google Workspace API Key',
+        pattern: /(?:google[_-]?workspace[_-]?api[_-]?key|workspace[_-]?api[_-]?key)\s*[:=]\s*["']?(AIza[0-9A-Za-z\-_]{35})["']?/gi,
+        suggestion: 'Google Workspace API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Google Workspace Client Secret',
+        pattern: /(?:google[_-]?workspace[_-]?client[_-]?secret|workspace[_-]?client[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{24,})["']?/gi,
+        suggestion: 'Google Workspace Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Slack App Secret',
+        pattern: /(?:slack[_-]?app[_-]?secret|slack[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Slack App Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Discord Client Secret',
+        pattern: /(?:discord[_-]?client[_-]?secret|discord[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32})["']?/gi,
+        suggestion: 'Discord Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Telegram Bot API Token (expanded)',
+        pattern: /[0-9]{8,10}:[a-zA-Z0-9_-]{35}/g,
+        suggestion: 'Telegram Bot API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'WhatsApp Business API Token',
+        pattern: /(?:whatsapp[_-]?business[_-]?api[_-]?token|whatsapp[_-]?api[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'WhatsApp Business API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Line Channel Secret',
+        pattern: /(?:line[_-]?channel[_-]?secret|line[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Line Channel Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'WeChat App Secret',
+        pattern: /(?:wechat[_-]?app[_-]?secret|wechat[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32})["']?/gi,
+        suggestion: 'WeChat App Secret',
+        confidence: 'high'
+    },
+
+    // Additional AI & ML Services
+    {
+        name: 'Google AI Studio API Key',
+        pattern: /(?:google[_-]?ai[_-]?studio[_-]?api[_-]?key|aistudio[_-]?api[_-]?key)\s*[:=]\s*["']?(AIza[0-9A-Za-z\-_]{35})["']?/gi,
+        suggestion: 'Google AI Studio API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Google Vertex AI API Key',
+        pattern: /(?:google[_-]?vertex[_-]?ai[_-]?api[_-]?key|vertex[_-]?ai[_-]?api[_-]?key)\s*[:=]\s*["']?(AIza[0-9A-Za-z\-_]{35})["']?/gi,
+        suggestion: 'Google Vertex AI API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Azure OpenAI API Key',
+        pattern: /(?:azure[_-]?openai[_-]?api[_-]?key|azure[_-]?openai[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Azure OpenAI API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'AWS Bedrock API Key',
+        pattern: /(?:aws[_-]?bedrock[_-]?api[_-]?key|bedrock[_-]?api[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'AWS Bedrock API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Anthropic Claude API Key (alternative)',
+        pattern: /(?:anthropic[_-]?claude[_-]?api[_-]?key|claude[_-]?api[_-]?key)\s*[:=]\s*["']?(sk-ant-[A-Za-z0-9\-_]{95,})["']?/gi,
+        suggestion: 'Anthropic Claude API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Cohere API Key (expanded)',
+        pattern: /(?:cohere[_-]?api[_-]?key|cohere[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{40,})["']?/gi,
+        suggestion: 'Cohere API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Hugging Face API Token (expanded)',
+        pattern: /hf_[a-zA-Z0-9]{37}/g,
+        suggestion: 'Hugging Face API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Replicate API Token (expanded)',
+        pattern: /r8_[a-zA-Z0-9\-_]{37,}/g,
+        suggestion: 'Replicate API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Stability AI API Key (expanded)',
+        pattern: /(?:stability[_-]?ai[_-]?api[_-]?key|stability[_-]?api[_-]?key)\s*[:=]\s*["']?(sk-[a-zA-Z0-9]{48,})["']?/gi,
+        suggestion: 'Stability AI API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Jasper AI API Key',
+        pattern: /(?:jasper[_-]?ai[_-]?api[_-]?key|jasper[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Jasper AI API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Copy.ai API Key',
+        pattern: /(?:copy[_-]?ai[_-]?api[_-]?key|copyai[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Copy.ai API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Writesonic API Key',
+        pattern: /(?:writesonic[_-]?api[_-]?key|writesonic[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Writesonic API Key',
+        confidence: 'high'
+    },
+
+    // Additional Payment & Financial Services
+    {
+        name: 'Square Access Token (expanded)',
+        pattern: /EAAA[a-zA-Z0-9]{60,}/g,
+        suggestion: 'Square Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'PayPal Client ID (expanded)',
+        pattern: /(?:paypal[_-]?client[_-]?id|paypal[_-]?id)\s*[:=]\s*["']?([A-Za-z0-9]{80,})["']?/gi,
+        suggestion: 'PayPal Client ID',
+        confidence: 'high'
+    },
+    {
+        name: 'Stripe Connect Client Secret',
+        pattern: /(?:stripe[_-]?connect[_-]?client[_-]?secret|stripe[_-]?connect[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Stripe Connect Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Braintree Merchant ID',
+        pattern: /(?:braintree[_-]?merchant[_-]?id|braintree[_-]?merchant)\s*[:=]\s*["']?([a-zA-Z0-9]{16})["']?/gi,
+        suggestion: 'Braintree Merchant ID',
+        confidence: 'high'
+    },
+    {
+        name: 'Braintree Private Key',
+        pattern: /(?:braintree[_-]?private[_-]?key|braintree[_-]?private)\s*[:=]\s*["']?([A-Za-z0-9+/=]{100,})["']?/gi,
+        suggestion: 'Braintree Private Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Authorize.net Transaction Key',
+        pattern: /(?:authorize[_-]?net[_-]?transaction[_-]?key|authnet[_-]?transaction[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{16,})["']?/gi,
+        suggestion: 'Authorize.net Transaction Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Adyen Merchant Account',
+        pattern: /(?:adyen[_-]?merchant[_-]?account|adyen[_-]?merchant)\s*[:=]\s*["']?([A-Za-z0-9]{8,})["']?/gi,
+        suggestion: 'Adyen Merchant Account',
+        confidence: 'high'
+    },
+    {
+        name: 'Worldpay API Key',
+        pattern: /(?:worldpay[_-]?api[_-]?key|worldpay[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Worldpay API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'PayU API Key',
+        pattern: /(?:payu[_-]?api[_-]?key|payu[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'PayU API Key',
+        confidence: 'high'
+    },
+    {
+        name: '2Checkout API Secret',
+        pattern: /(?:2checkout[_-]?api[_-]?secret|2co[_-]?api[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: '2Checkout API Secret',
+        confidence: 'high'
+    },
+
+    // Additional Monitoring & Logging
+    {
+        name: 'Datadog API Key (expanded)',
+        pattern: /(?:datadog[_-]?api[_-]?key|datadog[_-]?key)\s*[:=]\s*["']?([a-f0-9]{32})["']?/gi,
+        suggestion: 'Datadog API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Datadog Application Key (expanded)',
+        pattern: /(?:datadog[_-]?application[_-]?key|datadog[_-]?app[_-]?key)\s*[:=]\s*["']?([a-f0-9]{40})["']?/gi,
+        suggestion: 'Datadog Application Key',
+        confidence: 'high'
+    },
+    {
+        name: 'New Relic API Key (expanded)',
+        pattern: /(?:newrelic[_-]?api[_-]?key|new[_-]?relic[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{40,})["']?/gi,
+        suggestion: 'New Relic API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'New Relic License Key',
+        pattern: /(?:newrelic[_-]?license[_-]?key|new[_-]?relic[_-]?license)\s*[:=]\s*["']?([a-zA-Z0-9]{40,})["']?/gi,
+        suggestion: 'New Relic License Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Splunk API Token',
+        pattern: /(?:splunk[_-]?api[_-]?token|splunk[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Splunk API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Loggly API Token',
+        pattern: /(?:loggly[_-]?api[_-]?token|loggly[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Loggly API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Papertrail API Token',
+        pattern: /(?:papertrail[_-]?api[_-]?token|papertrail[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Papertrail API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'LogDNA API Key',
+        pattern: /(?:logdna[_-]?api[_-]?key|logdna[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'LogDNA API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Sumo Logic Access ID',
+        pattern: /(?:sumo[_-]?logic[_-]?access[_-]?id|sumologic[_-]?access[_-]?id)\s*[:=]\s*["']?([a-zA-Z0-9]{20,})["']?/gi,
+        suggestion: 'Sumo Logic Access ID',
+        confidence: 'high'
+    },
+    {
+        name: 'Sumo Logic Access Key',
+        pattern: /(?:sumo[_-]?logic[_-]?access[_-]?key|sumologic[_-]?access[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Sumo Logic Access Key',
+        confidence: 'high'
+    },
+
+    // Additional Security & Identity
+    {
+        name: 'Auth0 Client Secret (expanded)',
+        pattern: /(?:auth0[_-]?client[_-]?secret|auth0[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Auth0 Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Okta Client Secret',
+        pattern: /(?:okta[_-]?client[_-]?secret|okta[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9]{40,})["']?/gi,
+        suggestion: 'Okta Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Ping Identity OAuth Client Secret',
+        pattern: /(?:ping[_-]?identity[_-]?oauth[_-]?client[_-]?secret|ping[_-]?oauth[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'Ping Identity OAuth Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'ForgeRock Access Token (expanded)',
+        pattern: /(?:forgerock[_-]?access[_-]?token|forgerock[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'ForgeRock Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Keycloak Client Secret (expanded)',
+        pattern: /(?:keycloak[_-]?client[_-]?secret|keycloak[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Keycloak Client Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'CyberArk API Key',
+        pattern: /(?:cyberark[_-]?api[_-]?key|cyberark[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'CyberArk API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Thycotic Secret Server Token',
+        pattern: /(?:thycotic[_-]?secret[_-]?server[_-]?token|thycotic[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Thycotic Secret Server Token',
+        confidence: 'high'
+    },
+    {
+        name: '1Password Connect Token',
+        pattern: /(?:1password[_-]?connect[_-]?token|op[_-]?connect[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: '1Password Connect Token',
+        confidence: 'high'
+    },
+    {
+        name: 'LastPass API Key',
+        pattern: /(?:lastpass[_-]?api[_-]?key|lastpass[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'LastPass API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Dashlane API Key',
+        pattern: /(?:dashlane[_-]?api[_-]?key|dashlane[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Dashlane API Key',
+        confidence: 'high'
     }
 ];
