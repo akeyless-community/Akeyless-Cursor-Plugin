@@ -54,4 +54,12 @@ jspm_packages/
 .yarn-integrity
 
 # dotenv environment variables file
-.env 
+.env
+
+# Test files with fake secrets - must be excluded from VSIX
+test-secrets.js
+test-secrets.py
+test-secrets.json
+test/test-secrets.js
+test/test-secrets.py
+test/test-secrets.json

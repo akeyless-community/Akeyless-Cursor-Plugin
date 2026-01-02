@@ -1,6 +1,10 @@
-# Test files with fake secrets
+# Test files with fake secrets - exclude from VSIX package
 test/
+test/**/*
 test-secrets.js
 test-secrets.py
 test-secrets.json
+**/test-secrets.js
+**/test-secrets.py
+**/test-secrets.json
 
