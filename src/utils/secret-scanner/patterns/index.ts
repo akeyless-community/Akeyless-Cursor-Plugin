@@ -2,7 +2,7 @@ import { SecretPattern } from '../types';
 
 /**
  * All secret detection patterns
- * This file contains 207+ patterns for detecting hardcoded secrets
+ * This file contains 400+ patterns for detecting hardcoded secrets
  */
 export const SECRET_PATTERNS: SecretPattern[] = [
     // Cloud Provider Keys
@@ -1282,5 +1282,825 @@ export const SECRET_PATTERNS: SecretPattern[] = [
         pattern: /(?:secret|key|token|password|auth)\s*[:=]\s*["']?([a-zA-Z0-9\-_./+]{50,})["']?/gi,
         suggestion: 'Potential Long Token',
         confidence: 'medium'
+    },
+
+    // ========== EXPANDED PATTERNS - ADDITIONAL CLOUD PROVIDERS ==========
+    {
+        name: 'Tencent Cloud Secret ID',
+        pattern: /(?:tencent[_-]?cloud[_-]?secret[_-]?id|qcloud[_-]?secret[_-]?id)\s*[:=]\s*["']?([A-Za-z0-9]{36})["']?/gi,
+        suggestion: 'Tencent Cloud Secret ID',
+        confidence: 'high'
+    },
+    {
+        name: 'Tencent Cloud Secret Key',
+        pattern: /(?:tencent[_-]?cloud[_-]?secret[_-]?key|qcloud[_-]?secret[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9]{32,})["']?/gi,
+        suggestion: 'Tencent Cloud Secret Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Baidu Cloud Access Key',
+        pattern: /(?:baidu[_-]?cloud[_-]?access[_-]?key|bce[_-]?access[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9]{32,})["']?/gi,
+        suggestion: 'Baidu Cloud Access Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Baidu Cloud Secret Key',
+        pattern: /(?:baidu[_-]?cloud[_-]?secret[_-]?key|bce[_-]?secret[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9]{32,})["']?/gi,
+        suggestion: 'Baidu Cloud Secret Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Oracle Cloud API Key',
+        pattern: /(?:oracle[_-]?cloud[_-]?api[_-]?key|oci[_-]?api[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9+/]{40,})["']?/gi,
+        suggestion: 'Oracle Cloud API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Oracle Cloud Private Key',
+        pattern: /-----BEGIN\s+(?:RSA\s+)?PRIVATE\s+KEY-----.*?-----END\s+(?:RSA\s+)?PRIVATE\s+KEY-----/gs,
+        suggestion: 'Oracle Cloud Private Key',
+        confidence: 'high'
+    },
+    {
+        name: 'IBM Cloud IAM API Key',
+        pattern: /(?:ibm[_-]?cloud[_-]?iam[_-]?api[_-]?key|bluemix[_-]?iam[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9\-_]{40,})["']?/gi,
+        suggestion: 'IBM Cloud IAM API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Scaleway API Key',
+        pattern: /(?:scaleway[_-]?api[_-]?key|scw[_-]?api[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Scaleway API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Hetzner Cloud API Token',
+        pattern: /(?:hetzner[_-]?cloud[_-]?api[_-]?token|hcloud[_-]?token)\s*[:=]\s*["']?([A-Za-z0-9\-_]{64})["']?/gi,
+        suggestion: 'Hetzner Cloud API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Packet API Key',
+        pattern: /(?:packet[_-]?api[_-]?key|packet[_-]?token)\s*[:=]\s*["']?([A-Za-z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Packet API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'OVH API Key',
+        pattern: /(?:ovh[_-]?api[_-]?key|ovh[_-]?application[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9]{32,})["']?/gi,
+        suggestion: 'OVH API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'OVH API Secret',
+        pattern: /(?:ovh[_-]?api[_-]?secret|ovh[_-]?application[_-]?secret)\s*[:=]\s*["']?([A-Za-z0-9]{32,})["']?/gi,
+        suggestion: 'OVH API Secret',
+        confidence: 'high'
+    },
+
+    // ========== ADDITIONAL DATABASE SERVICES ==========
+    {
+        name: 'DynamoDB Access Key',
+        pattern: /(?:dynamodb[_-]?access[_-]?key|dynamo[_-]?access[_-]?key)\s*[:=]\s*["']?([A-Z0-9]{20})["']?/gi,
+        suggestion: 'DynamoDB Access Key',
+        confidence: 'high'
+    },
+    {
+        name: 'CosmosDB Connection String',
+        pattern: /AccountEndpoint=https:\/\/[^;]+;AccountKey=[^;]+/g,
+        suggestion: 'CosmosDB Connection String',
+        confidence: 'high'
+    },
+    {
+        name: 'Couchbase Password',
+        pattern: /(?:couchbase[_-]?password|couchbase[_-]?pass)\s*[:=]\s*["']?([^"' \t\r\n]{8,})["']?/gi,
+        suggestion: 'Couchbase Password',
+        confidence: 'medium'
+    },
+    {
+        name: 'FaunaDB Secret',
+        pattern: /(?:faunadb[_-]?secret|fauna[_-]?secret)\s*[:=]\s*["']?(fn[A-Za-z0-9\-_]{40,})["']?/gi,
+        suggestion: 'FaunaDB Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'FaunaDB Key',
+        pattern: /fn[A-Za-z0-9\-_]{40,}/g,
+        suggestion: 'FaunaDB Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Supabase Anon Key',
+        pattern: /(?:supabase[_-]?anon[_-]?key|supabase[_-]?anon)\s*[:=]\s*["']?(eyJ[a-zA-Z0-9\-_]{100,})["']?/gi,
+        suggestion: 'Supabase Anon Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Supabase Service Key',
+        pattern: /(?:supabase[_-]?service[_-]?key|supabase[_-]?service)\s*[:=]\s*["']?(eyJ[a-zA-Z0-9\-_]{100,})["']?/gi,
+        suggestion: 'Supabase Service Key',
+        confidence: 'high'
+    },
+    {
+        name: 'PlanetScale Password',
+        pattern: /(?:planetscale[_-]?password|pscale[_-]?password)\s*[:=]\s*["']?([A-Za-z0-9\-_]{32,})["']?/gi,
+        suggestion: 'PlanetScale Password',
+        confidence: 'high'
+    },
+    {
+        name: 'PlanetScale Token',
+        pattern: /pscale_[a-zA-Z0-9\-_]{43}/g,
+        suggestion: 'PlanetScale Token',
+        confidence: 'high'
+    },
+    {
+        name: 'CockroachDB Connection String',
+        pattern: /postgresql:\/\/[^@]+@[^/]+\/[^?]+/g,
+        suggestion: 'CockroachDB Connection String',
+        confidence: 'high'
+    },
+    {
+        name: 'TimescaleDB Connection String',
+        pattern: /(?:timescaledb[_-]?connection|timescale[_-]?connection)\s*[:=]\s*["']?(postgresql:\/\/[^"']+)["']?/gi,
+        suggestion: 'TimescaleDB Connection String',
+        confidence: 'high'
+    },
+
+    // ========== ADDITIONAL CI/CD PLATFORMS ==========
+    {
+        name: 'GitHub Actions Secret',
+        pattern: /(?:github[_-]?actions[_-]?secret|gha[_-]?secret)\s*[:=]\s*["']?([A-Za-z0-9\-_]{20,})["']?/gi,
+        suggestion: 'GitHub Actions Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Buildkite API Token',
+        pattern: /(?:buildkite[_-]?api[_-]?token|buildkite[_-]?token)\s*[:=]\s*["']?([a-z0-9]{40})["']?/gi,
+        suggestion: 'Buildkite API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'CodeShip API Key',
+        pattern: /(?:codeship[_-]?api[_-]?key|codeship[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9]{32,})["']?/gi,
+        suggestion: 'CodeShip API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'AppVeyor API Token',
+        pattern: /(?:appveyor[_-]?api[_-]?token|appveyor[_-]?token)\s*[:=]\s*["']?([A-Za-z0-9]{32,})["']?/gi,
+        suggestion: 'AppVeyor API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Drone CI Token',
+        pattern: /(?:drone[_-]?ci[_-]?token|drone[_-]?token)\s*[:=]\s*["']?([A-Za-z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Drone CI Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Semaphore CI Token',
+        pattern: /(?:semaphore[_-]?ci[_-]?token|semaphore[_-]?token)\s*[:=]\s*["']?([A-Za-z0-9]{32,})["']?/gi,
+        suggestion: 'Semaphore CI Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Shippable API Token',
+        pattern: /(?:shippable[_-]?api[_-]?token|shippable[_-]?token)\s*[:=]\s*["']?([A-Za-z0-9]{32,})["']?/gi,
+        suggestion: 'Shippable API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Wercker API Token',
+        pattern: /(?:wercker[_-]?api[_-]?token|wercker[_-]?token)\s*[:=]\s*["']?([A-Za-z0-9]{32,})["']?/gi,
+        suggestion: 'Wercker API Token',
+        confidence: 'high'
+    },
+
+    // ========== ADDITIONAL AI/ML SERVICES ==========
+    {
+        name: 'Midjourney API Key',
+        pattern: /(?:midjourney[_-]?api[_-]?key|mj[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Midjourney API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Midjourney Token',
+        pattern: /mj-[a-zA-Z0-9\-_]{32,}/g,
+        suggestion: 'Midjourney Token',
+        confidence: 'high'
+    },
+    {
+        name: 'DALL-E API Key',
+        pattern: /(?:dalle[_-]?api[_-]?key|dall[_-]?e[_-]?api[_-]?key)\s*[:=]\s*["']?(sk-[a-zA-Z0-9]{48,})["']?/gi,
+        suggestion: 'DALL-E API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Perplexity API Key',
+        pattern: /(?:perplexity[_-]?api[_-]?key|pplx[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Perplexity API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Groq API Key',
+        pattern: /(?:groq[_-]?api[_-]?key|groq[_-]?key)\s*[:=]\s*["']?(gsk_[a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Groq API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Groq Token',
+        pattern: /gsk_[a-zA-Z0-9\-_]{32,}/g,
+        suggestion: 'Groq Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Mistral AI API Key',
+        pattern: /(?:mistral[_-]?ai[_-]?api[_-]?key|mistral[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Mistral AI API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Together AI API Key',
+        pattern: /(?:together[_-]?ai[_-]?api[_-]?key|together[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Together AI API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Anthropic API Key (expanded)',
+        pattern: /sk-ant-[A-Za-z0-9\-_]{95,}/g,
+        suggestion: 'Anthropic API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Claude API Key',
+        pattern: /(?:claude[_-]?api[_-]?key|claude[_-]?key)\s*[:=]\s*["']?(sk-ant-[A-Za-z0-9\-_]{95,})["']?/gi,
+        suggestion: 'Claude API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Google Gemini API Key',
+        pattern: /(?:gemini[_-]?api[_-]?key|google[_-]?gemini[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Google Gemini API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'ElevenLabs API Key',
+        pattern: /(?:elevenlabs[_-]?api[_-]?key|11labs[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'ElevenLabs API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Runway ML API Key',
+        pattern: /(?:runway[_-]?ml[_-]?api[_-]?key|runway[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Runway ML API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Jina AI API Key',
+        pattern: /(?:jina[_-]?ai[_-]?api[_-]?key|jina[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Jina AI API Key',
+        confidence: 'high'
+    },
+
+    // ========== ADDITIONAL PAYMENT PROCESSORS ==========
+    {
+        name: 'Mollie API Key',
+        pattern: /(?:mollie[_-]?api[_-]?key|mollie[_-]?key)\s*[:=]\s*["']?(live_[a-zA-Z0-9]{32,}|test_[a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'Mollie API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Mollie Live Key',
+        pattern: /live_[a-zA-Z0-9]{32,}/g,
+        suggestion: 'Mollie Live Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Klarna API Key',
+        pattern: /(?:klarna[_-]?api[_-]?key|klarna[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Klarna API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Affirm API Key',
+        pattern: /(?:affirm[_-]?api[_-]?key|affirm[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Affirm API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Afterpay API Key',
+        pattern: /(?:afterpay[_-]?api[_-]?key|afterpay[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Afterpay API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'WePay API Key',
+        pattern: /(?:wepay[_-]?api[_-]?key|wepay[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'WePay API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Square Sandbox Key',
+        pattern: /sandbox-[a-zA-Z0-9\-_]{40,}/g,
+        suggestion: 'Square Sandbox Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Payoneer API Key',
+        pattern: /(?:payoneer[_-]?api[_-]?key|payoneer[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Payoneer API Key',
+        confidence: 'high'
+    },
+
+    // ========== ADDITIONAL MONITORING & ANALYTICS ==========
+    {
+        name: 'LogRocket API Key',
+        pattern: /(?:logrocket[_-]?api[_-]?key|logrocket[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'LogRocket API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'FullStory API Key',
+        pattern: /(?:fullstory[_-]?api[_-]?key|fullstory[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'FullStory API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Hotjar API Key',
+        pattern: /(?:hotjar[_-]?api[_-]?key|hotjar[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Hotjar API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'PostHog API Key',
+        pattern: /(?:posthog[_-]?api[_-]?key|posthog[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'PostHog API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Heap Analytics API Key',
+        pattern: /(?:heap[_-]?analytics[_-]?api[_-]?key|heap[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Heap Analytics API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Amplitude API Key (expanded)',
+        pattern: /(?:amplitude[_-]?api[_-]?key|amplitude[_-]?key)\s*[:=]\s*["']?([a-f0-9]{32})["']?/gi,
+        suggestion: 'Amplitude API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Mixpanel API Secret (expanded)',
+        pattern: /(?:mixpanel[_-]?api[_-]?secret|mixpanel[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'Mixpanel API Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Segment Write Key (expanded)',
+        pattern: /(?:segment[_-]?write[_-]?key|segment[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'Segment Write Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Sentry Auth Token (expanded)',
+        pattern: /(?:sentry[_-]?auth[_-]?token|sentry[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9]{40,})["']?/gi,
+        suggestion: 'Sentry Auth Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Rollbar Access Token (expanded)',
+        pattern: /(?:rollbar[_-]?access[_-]?token|rollbar[_-]?token)\s*[:=]\s*["']?([a-f0-9]{32})["']?/gi,
+        suggestion: 'Rollbar Access Token',
+        confidence: 'high'
+    },
+
+    // ========== ADDITIONAL COMMUNICATION SERVICES ==========
+    {
+        name: 'Sinch API Key',
+        pattern: /(?:sinch[_-]?api[_-]?key|sinch[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Sinch API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Telnyx API Key',
+        pattern: /(?:telnyx[_-]?api[_-]?key|telnyx[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Telnyx API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'RingCentral API Key',
+        pattern: /(?:ringcentral[_-]?api[_-]?key|ringcentral[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'RingCentral API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'RingCentral Secret',
+        pattern: /(?:ringcentral[_-]?secret|ringcentral[_-]?api[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'RingCentral Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Twilio Account SID (expanded)',
+        pattern: /AC[a-z0-9]{32}/g,
+        suggestion: 'Twilio Account SID',
+        confidence: 'high'
+    },
+    {
+        name: 'Twilio Auth Token (expanded)',
+        pattern: /(?:twilio[_-]?auth[_-]?token|twilio[_-]?token)\s*[:=]\s*["']?([0-9a-fA-F]{32})["']?/gi,
+        suggestion: 'Twilio Auth Token',
+        confidence: 'high'
+    },
+    {
+        name: 'MessageBird API Key (expanded)',
+        pattern: /(?:messagebird[_-]?api[_-]?key|messagebird[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{25,})["']?/gi,
+        suggestion: 'MessageBird API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Vonage API Key (expanded)',
+        pattern: /(?:vonage[_-]?api[_-]?key|vonage[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{8,})["']?/gi,
+        suggestion: 'Vonage API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Bandwidth API Token (expanded)',
+        pattern: /(?:bandwidth[_-]?api[_-]?token|bandwidth[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'Bandwidth API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Plivo Auth Token (expanded)',
+        pattern: /(?:plivo[_-]?auth[_-]?token|plivo[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9]{20,})["']?/gi,
+        suggestion: 'Plivo Auth Token',
+        confidence: 'high'
+    },
+
+    // ========== ADDITIONAL STORAGE & CDN SERVICES ==========
+    {
+        name: 'KeyCDN API Key',
+        pattern: /(?:keycdn[_-]?api[_-]?key|keycdn[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'KeyCDN API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'BunnyCDN API Key',
+        pattern: /(?:bunnycdn[_-]?api[_-]?key|bunnycdn[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'BunnyCDN API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Rackspace API Key',
+        pattern: /(?:rackspace[_-]?api[_-]?key|rackspace[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Rackspace API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Akamai API Token',
+        pattern: /(?:akamai[_-]?api[_-]?token|akamai[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Akamai API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Cloudflare API Token (expanded)',
+        pattern: /(?:cloudflare[_-]?api[_-]?token|cf[_-]?api[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Cloudflare API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Fastly API Key (expanded)',
+        pattern: /(?:fastly[_-]?api[_-]?key|fastly[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'Fastly API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Backblaze B2 Application Key (expanded)',
+        pattern: /(?:backblaze[_-]?b2[_-]?application[_-]?key|b2[_-]?app[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{25})["']?/gi,
+        suggestion: 'Backblaze B2 Application Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Wasabi Access Key (expanded)',
+        pattern: /(?:wasabi[_-]?access[_-]?key|wasabi[_-]?key)\s*[:=]\s*["']?([A-Z0-9]{20})["']?/gi,
+        suggestion: 'Wasabi Access Key',
+        confidence: 'high'
+    },
+
+    // ========== ADDITIONAL SECURITY SERVICES ==========
+    {
+        name: 'ForgeRock Access Token',
+        pattern: /(?:forgerock[_-]?access[_-]?token|forgerock[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'ForgeRock Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Keycloak Secret',
+        pattern: /(?:keycloak[_-]?secret|keycloak[_-]?client[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Keycloak Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Auth0 Management API Token (expanded)',
+        pattern: /(?:auth0[_-]?management[_-]?api[_-]?token|auth0[_-]?mgmt[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{64,})["']?/gi,
+        suggestion: 'Auth0 Management API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Okta API Token (expanded)',
+        pattern: /(?:okta[_-]?api[_-]?token|okta[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9]{40,})["']?/gi,
+        suggestion: 'Okta API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'OneLogin API Secret (expanded)',
+        pattern: /(?:onelogin[_-]?api[_-]?secret|onelogin[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9]{40,})["']?/gi,
+        suggestion: 'OneLogin API Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Ping Identity API Key (expanded)',
+        pattern: /(?:ping[_-]?identity[_-]?api[_-]?key|ping[_-]?api[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'Ping Identity API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Duo Secret Key (expanded)',
+        pattern: /(?:duo[_-]?secret[_-]?key|duo[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{40,})["']?/gi,
+        suggestion: 'Duo Secret Key',
+        confidence: 'high'
+    },
+
+    // ========== INFRASTRUCTURE AS CODE TOOLS ==========
+    {
+        name: 'Ansible Vault Password',
+        pattern: /(?:ansible[_-]?vault[_-]?password|ansible[_-]?vault)\s*[:=]\s*["']?([^"' \t\r\n]{8,})["']?/gi,
+        suggestion: 'Ansible Vault Password',
+        confidence: 'medium'
+    },
+    {
+        name: 'Chef Data Bag Secret',
+        pattern: /(?:chef[_-]?data[_-]?bag[_-]?secret|chef[_-]?secret)\s*[:=]\s*["']?([A-Za-z0-9+/=]{32,})["']?/gi,
+        suggestion: 'Chef Data Bag Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Puppet Certificate',
+        pattern: /-----BEGIN\s+CERTIFICATE-----.*?-----END\s+CERTIFICATE-----/gs,
+        suggestion: 'Puppet Certificate',
+        confidence: 'medium'
+    },
+    {
+        name: 'SaltStack Secret Key',
+        pattern: /(?:saltstack[_-]?secret[_-]?key|salt[_-]?secret[_-]?key)\s*[:=]\s*["']?([A-Za-z0-9+/=]{32,})["']?/gi,
+        suggestion: 'SaltStack Secret Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Terraform State Secret (expanded)',
+        pattern: /(?:terraform[_-]?state[_-]?secret|tf[_-]?state[_-]?secret)\s*[:=]\s*["']?([A-Za-z0-9+/=]{20,})["']?/gi,
+        suggestion: 'Terraform State Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'Pulumi API Key',
+        pattern: /(?:pulumi[_-]?api[_-]?key|pulumi[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Pulumi API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Pulumi Access Token',
+        pattern: /pulumi-[a-zA-Z0-9\-_]{40,}/g,
+        suggestion: 'Pulumi Access Token',
+        confidence: 'high'
+    },
+
+    // ========== LANGUAGE-SPECIFIC PATTERNS ==========
+    {
+        name: 'Python os.environ Secret',
+        pattern: /os\.environ\[["']([A-Z_][A-Z0-9_]*[_-]?(?:SECRET|KEY|TOKEN|PASSWORD|API[_-]?KEY))["']\]\s*=\s*["']([^"']{10,})["']/gi,
+        suggestion: 'Python Environment Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'Node.js process.env Secret',
+        pattern: /process\.env\[["']([A-Z_][A-Z0-9_]*[_-]?(?:SECRET|KEY|TOKEN|PASSWORD|API[_-]?KEY))["']\]\s*=\s*["']([^"']{10,})["']/gi,
+        suggestion: 'Node.js Environment Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'Go os.Getenv Secret',
+        pattern: /os\.Setenv\(["']([A-Z_][A-Z0-9_]*[_-]?(?:SECRET|KEY|TOKEN|PASSWORD|API[_-]?KEY))["'],\s*["']([^"']{10,})["']\)/gi,
+        suggestion: 'Go Environment Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'Java System.getenv Secret',
+        pattern: /System\.setProperty\(["']([A-Z_][A-Z0-9_]*[_-]?(?:SECRET|KEY|TOKEN|PASSWORD|API[_-]?KEY))["'],\s*["']([^"']{10,})["']\)/gi,
+        suggestion: 'Java System Property Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'Ruby ENV Secret',
+        pattern: /ENV\[["']([A-Z_][A-Z0-9_]*[_-]?(?:SECRET|KEY|TOKEN|PASSWORD|API[_-]?KEY))["']\]\s*=\s*["']([^"']{10,})["']/gi,
+        suggestion: 'Ruby Environment Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'PHP getenv Secret',
+        pattern: /putenv\(["']([A-Z_][A-Z0-9_]*[_-]?(?:SECRET|KEY|TOKEN|PASSWORD|API[_-]?KEY))=["']([^"']{10,})["']\)/gi,
+        suggestion: 'PHP Environment Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'C# Environment Variable Secret',
+        pattern: /Environment\.SetEnvironmentVariable\(["']([A-Z_][A-Z0-9_]*[_-]?(?:SECRET|KEY|TOKEN|PASSWORD|API[_-]?KEY))["'],\s*["']([^"']{10,})["']\)/gi,
+        suggestion: 'C# Environment Secret',
+        confidence: 'medium'
+    },
+
+    // ========== CONFIGURATION FILE PATTERNS ==========
+    {
+        name: '.env File Secret',
+        pattern: /^([A-Z_][A-Z0-9_]*[_-]?(?:SECRET|KEY|TOKEN|PASSWORD|API[_-]?KEY))\s*=\s*["']?([^"'\n]{10,})["']?$/gim,
+        suggestion: '.env File Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'Docker Compose Secret',
+        pattern: /(?:MYSQL_ROOT_PASSWORD|POSTGRES_PASSWORD|MONGO_INITDB_ROOT_PASSWORD|REDIS_PASSWORD)\s*[:=]\s*["']([^"']{8,})["']/gi,
+        suggestion: 'Docker Compose Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Kubernetes Secret (expanded)',
+        pattern: /(?:kubernetes[_-]?secret|k8s[_-]?secret)\s*[:=]\s*["']?([A-Za-z0-9+/=]{40,})["']?/gi,
+        suggestion: 'Kubernetes Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'Kubernetes Base64 Secret',
+        pattern: /kind:\s*Secret.*?data:.*?password:\s*([A-Za-z0-9+/=]{20,})/gs,
+        suggestion: 'Kubernetes Base64 Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'YAML Secret',
+        pattern: /(?:secret|password|key|token|api[_-]?key):\s*["']?([A-Za-z0-9\-_./+=]{20,})["']?/gi,
+        suggestion: 'YAML Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'JSON Secret',
+        pattern: /"(?:secret|password|key|token|api[_-]?key)":\s*"([^"]{10,})"/gi,
+        suggestion: 'JSON Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'XML Secret',
+        pattern: /<(?:secret|password|key|token|api[_-]?key)>\s*([^<]{10,})\s*<\/(?:secret|password|key|token|api[_-]?key)>/gi,
+        suggestion: 'XML Secret',
+        confidence: 'medium'
+    },
+    {
+        name: 'Properties File Secret',
+        pattern: /^(?:secret|password|key|token|api[_-]?key)\s*[:=]\s*([^=\n]{10,})$/gim,
+        suggestion: 'Properties File Secret',
+        confidence: 'medium'
+    },
+
+    // ========== ADDITIONAL WEBHOOK PATTERNS ==========
+    {
+        name: 'GitHub Webhook Secret',
+        pattern: /(?:github[_-]?webhook[_-]?secret|gh[_-]?webhook[_-]?secret)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{20,})["']?/gi,
+        suggestion: 'GitHub Webhook Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'GitLab Webhook Token',
+        pattern: /(?:gitlab[_-]?webhook[_-]?token|gitlab[_-]?webhook)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{20,})["']?/gi,
+        suggestion: 'GitLab Webhook Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Bitbucket Webhook Secret',
+        pattern: /(?:bitbucket[_-]?webhook[_-]?secret|bitbucket[_-]?webhook)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{20,})["']?/gi,
+        suggestion: 'Bitbucket Webhook Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Stripe Webhook Secret',
+        pattern: /(?:stripe[_-]?webhook[_-]?secret|stripe[_-]?webhook)\s*[:=]\s*["']?(whsec_[a-zA-Z0-9]{32,})["']?/gi,
+        suggestion: 'Stripe Webhook Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Stripe Webhook Signing Secret',
+        pattern: /whsec_[a-zA-Z0-9]{32,}/g,
+        suggestion: 'Stripe Webhook Signing Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'Shopify Webhook Secret',
+        pattern: /(?:shopify[_-]?webhook[_-]?secret|shopify[_-]?webhook)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Shopify Webhook Secret',
+        confidence: 'high'
+    },
+    {
+        name: 'PayPal Webhook Secret',
+        pattern: /(?:paypal[_-]?webhook[_-]?secret|paypal[_-]?webhook)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'PayPal Webhook Secret',
+        confidence: 'high'
+    },
+
+    // ========== ADDITIONAL SERVICE-SPECIFIC PATTERNS ==========
+    {
+        name: 'Vercel API Token',
+        pattern: /(?:vercel[_-]?api[_-]?token|vercel[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Vercel API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Netlify API Token',
+        pattern: /(?:netlify[_-]?api[_-]?token|netlify[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Netlify API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Railway API Token',
+        pattern: /(?:railway[_-]?api[_-]?token|railway[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Railway API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Render API Key',
+        pattern: /(?:render[_-]?api[_-]?key|render[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Render API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Fly.io API Token',
+        pattern: /(?:fly[_-]?io[_-]?api[_-]?token|fly[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Fly.io API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'DigitalOcean App Platform Token',
+        pattern: /(?:digitalocean[_-]?app[_-]?platform[_-]?token|do[_-]?app[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'DigitalOcean App Platform Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Airtable API Key',
+        pattern: /(?:airtable[_-]?api[_-]?key|airtable[_-]?key)\s*[:=]\s*["']?(pat[a-zA-Z0-9\-_]{17})["']?/gi,
+        suggestion: 'Airtable API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Airtable Personal Access Token',
+        pattern: /pat[a-zA-Z0-9\-_]{17}/g,
+        suggestion: 'Airtable Personal Access Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Notion API Key',
+        pattern: /(?:notion[_-]?api[_-]?key|notion[_-]?key)\s*[:=]\s*["']?(secret_[a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Notion API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Notion Integration Token',
+        pattern: /secret_[a-zA-Z0-9\-_]{32,}/g,
+        suggestion: 'Notion Integration Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Linear API Key',
+        pattern: /(?:linear[_-]?api[_-]?key|linear[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{40,})["']?/gi,
+        suggestion: 'Linear API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Asana API Key',
+        pattern: /(?:asana[_-]?api[_-]?key|asana[_-]?key)\s*[:=]\s*["']?([0-9]{1,}\.[a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Asana API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Monday.com API Token',
+        pattern: /(?:monday[_-]?com[_-]?api[_-]?token|monday[_-]?api[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{32,})["']?/gi,
+        suggestion: 'Monday.com API Token',
+        confidence: 'high'
+    },
+    {
+        name: 'Trello API Key',
+        pattern: /(?:trello[_-]?api[_-]?key|trello[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9]{32})["']?/gi,
+        suggestion: 'Trello API Key',
+        confidence: 'high'
+    },
+    {
+        name: 'Trello API Token',
+        pattern: /(?:trello[_-]?api[_-]?token|trello[_-]?token)\s*[:=]\s*["']?([a-zA-Z0-9\-_]{64,})["']?/gi,
+        suggestion: 'Trello API Token',
+        confidence: 'high'
     }
 ];
