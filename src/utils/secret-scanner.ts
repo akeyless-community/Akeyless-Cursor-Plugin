@@ -157,7 +157,7 @@ export class SecretScanner {
         // MEDIUM CONFIDENCE PATTERNS (Context-based detection)
         {
             name: 'Gemini API Key',
-            pattern: /(?:gemini[_-]?api[_-]?key|gemini_api_key)\s*[:=]\s*["']?([^"' \t\r\n]{20,})["']?/gi,
+            pattern: /(?:gemini[_-]?api[_-]?key|gemini_api_key|GeminiAPIKey)\s*[:=]\s*["']?([^"' \t\r\n]{20,})["']?/gi,
             suggestion: 'Gemini API Key',
             confidence: 'medium'
         },
@@ -181,7 +181,7 @@ export class SecretScanner {
         },
         {
             name: 'Token',
-            pattern: /["']?(?:token)["']?\s*[:=]\s*["']?([^"' \t\r\n]{20,100})["']?/gi,
+            pattern: /["']?(?:token|auth[_-]?token|access[_-]?token|api[_-]?token|bearer[_-]?token)["']?\s*[:=]\s*["']?([a-zA-Z0-9\-_./+]{20,})["']?/gi,
             suggestion: 'Token',
             confidence: 'medium'
         },
@@ -225,6 +225,12 @@ export class SecretScanner {
             name: 'Go Secret Assignment',
             pattern: /(?:secret|key|token|password)\s*[:=]\s*["']([^"']{10,})["']/gi,
             suggestion: 'Go Secret Assignment',
+            confidence: 'medium'
+        },
+        {
+            name: 'Go Function Call Secret',
+            pattern: /(?:getEnv|getenv|getConfig|getSecret|getValue)\([^,)]+,\s*["']([^"']{20,})["']\)/gi,
+            suggestion: 'Go Function Call Secret',
             confidence: 'medium'
         },
         
@@ -360,8 +366,9 @@ export class SecretScanner {
         logger.info('Scanning current project for hardcoded secrets');
         
         // Only scan the current project files, exclude all library and build directories
+        // Comprehensive file extension support for all major programming languages
         const files = await vscode.workspace.findFiles(
-            '**/*.{js,jsx,ts,tsx,json,env,yml,yaml,properties,ini,cfg,conf,env.local,env.development,env.production,txt,md}',
+            '**/*.{js,jsx,ts,tsx,json,env,yml,yaml,properties,ini,cfg,conf,env.local,env.development,env.production,txt,md,go,py,java,cs,php,rb,swift,kt,rs,cpp,c,cc,h,hpp,cxx,mm,m,vue,svelte,html,css,scss,less,sass,sh,bash,zsh,fish,ps1,ps,bat,cmd,tf,tfvars,hcl,dockerfile,sql,plsql,mysql,pgsql,r,R,lua,pl,perl,vb,vbs,f,f90,f95,f03,ml,mli,fs,fsx,ex,exs,erl,hrl,nim,cr,zig,v,vala,d,jl,el,lisp,cl,hs,lhs,elm,purescript,ocaml,scala,groovy,clj,cljs,dart,asm,s,scm,rkt,coffee,litcoffee,iced,styl,stylus,jade,pug,haml,slim,ejs,hbs,handlebars,mustache,erb,rhtml,edn,re,rei,res,resi,toml,xml,xsd,xsl,xslt}',
             '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**,**/out/**,**/target/**,**/bin/**,**/obj/**,**/.vscode-test/**,**/coverage/**,**/.nyc_output/**,**/logs/**,**/temp/**,**/tmp/**,**/.venv/**,**/venv/**,**/site-packages/**,**/__pycache__/**,**/.pytest_cache/**'
         );
 
@@ -433,8 +440,9 @@ export class SecretScanner {
         }
 
         // Only scan files in the current project, exclude all library directories
+        // Comprehensive file extension support for all major programming languages
         const files = await vscode.workspace.findFiles(
-            '**/*.{js,jsx,ts,tsx,json,env,yml,yaml,properties,ini,cfg,conf,env.local,env.development,env.production,txt,md}',
+            '**/*.{js,jsx,ts,tsx,json,env,yml,yaml,properties,ini,cfg,conf,env.local,env.development,env.production,txt,md,go,py,java,cs,php,rb,swift,kt,rs,cpp,c,cc,h,hpp,cxx,mm,m,vue,svelte,html,css,scss,less,sass,sh,bash,zsh,fish,ps1,ps,bat,cmd,tf,tfvars,hcl,dockerfile,sql,plsql,mysql,pgsql,r,R,lua,pl,perl,vb,vbs,f,f90,f95,f03,ml,mli,fs,fsx,ex,exs,erl,hrl,nim,cr,zig,v,vala,d,jl,el,lisp,cl,hs,lhs,elm,purescript,ocaml,scala,groovy,clj,cljs,dart,asm,s,scm,rkt,coffee,litcoffee,iced,styl,stylus,jade,pug,haml,slim,ejs,hbs,handlebars,mustache,erb,rhtml,edn,re,rei,res,resi,toml,xml,xsd,xsl,xslt}',
             '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**,**/out/**,**/target/**,**/bin/**,**/obj/**,**/.vscode-test/**,**/logs/**,**/temp/**,**/tmp/**,**/.venv/**,**/venv/**,**/site-packages/**,**/__pycache__/**,**/.pytest_cache/**,**/package-lock.json,**/yarn.lock'
         );
 
@@ -617,7 +625,13 @@ export class SecretScanner {
             } else if (pattern.name.toLowerCase().includes('password')) {
                 threshold = this.SCANNER_CONFIG.entropyThresholds.password;
             } else if (pattern.name.toLowerCase().includes('token')) {
-                threshold = this.SCANNER_CONFIG.entropyThresholds.token;
+                // For tokens, use a more lenient threshold - tokens can have various formats
+                // and high-entropy alphanumeric strings with hyphens/underscores are likely real tokens
+                threshold = Math.min(this.SCANNER_CONFIG.entropyThresholds.token, 3.5);
+                // If token is 30+ chars and contains alphanumeric with separators, it's likely real
+                if (value.length >= 30 && /^[a-zA-Z0-9\-_./+]+$/.test(value)) {
+                    threshold = 3.0; // Lower threshold for longer, well-formed tokens
+                }
             } else if (pattern.name.toLowerCase().includes('connection')) {
                 threshold = this.SCANNER_CONFIG.entropyThresholds.connectionString;
             }
