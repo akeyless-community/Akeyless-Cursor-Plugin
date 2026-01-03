@@ -2,7 +2,7 @@
   "name": "akeyless-secrets-manager",
   "displayName": "Akeyless Secrets Manager",
   "description": "Find and fix hardcoded secrets in your code by integrating directly with Akeyless. Now with auto-scan on save!",
-  "version": "1.2.8",
+  "version": "1.4.5",
   "publisher": "Akeyless",
   "license": "MIT",
   "repository": {
@@ -96,6 +96,18 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically scan for hardcoded secrets when a file is saved."
+        },
+        "akeyless.ml.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable ML-based false positive classification to reduce false positives."
+        },
+        "akeyless.ml.confidenceThreshold": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "ML confidence threshold (0-1). Higher values = more aggressive filtering of false positives."
         }
       }
     },
@@ -247,6 +259,7 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "ml-classify-text": "^2.0.0"
   }
 }

@@ -1,6 +1,7 @@
 import { SecretPattern, ScannerConfig } from '../types';
 import { EntropyCalculator } from '../utils/EntropyCalculator';
 import { logger } from '../../logger';
+import { MLFalsePositiveClassifier } from '../ml/MLFalsePositiveClassifier';
 
 /**
  * Filters false positives from secret detections
@@ -8,15 +9,21 @@ import { logger } from '../../logger';
  */
 export class FalsePositiveFilter {
     private readonly config: ScannerConfig;
+    private readonly mlClassifier: MLFalsePositiveClassifier;
 
     constructor(config: ScannerConfig) {
         this.config = config;
+        const mlEnabled = config.mlEnabled ?? true;
+        this.mlClassifier = new MLFalsePositiveClassifier(mlEnabled);
+        if (config.mlConfidenceThreshold !== undefined) {
+            this.mlClassifier.setThreshold(config.mlConfidenceThreshold);
+        }
     }
 
     /**
      * Main method to check if a detected value is a false positive
      */
-    isFalsePositive(value: string, line: string, pattern?: SecretPattern): boolean {
+    isFalsePositive(value: string, line: string, pattern?: SecretPattern, fileName?: string): boolean {
         const lowerValue = value.toLowerCase();
         const lowerLine = line.toLowerCase();
         const isGoFile = this.isGoFile(line, lowerLine);
@@ -196,6 +203,70 @@ export class FalsePositiveFilter {
         if (this.isSecretNameReference(value, lowerLine)) {
             logger.debug(`Filtered secret name reference: "${value}"`);
             return true;
+        }
+
+        // Check if value matches the variable/key name (common false positive)
+        // e.g., EVENT_SMTP_PASSWORD = "event_smtp_password"
+        if (this.isValueMatchingKeyName(value, line)) {
+            logger.debug(`Filtered value matching key name: "${value}"`);
+            return true;
+        }
+
+        // Language-agnostic code pattern detection (works for all languages)
+        if (this.isCodePattern(value, line, lowerLine, fileName)) {
+            logger.debug(`Filtered code pattern: "${value}"`);
+            return true;
+        }
+
+        // Language-agnostic false positive detection
+        if (this.isVariableOrParameterName(value, line, lowerLine)) {
+            logger.debug(`Filtered variable/parameter name: "${value}"`);
+            return true;
+        }
+
+        if (this.isFunctionOrMethodCall(value, line, lowerLine)) {
+            logger.debug(`Filtered function/method call: "${value}"`);
+            return true;
+        }
+
+        if (this.isTemplateString(value)) {
+            logger.debug(`Filtered template string: "${value}"`);
+            return true;
+        }
+
+        if (this.isApiEndpointPath(value, lowerLine)) {
+            logger.debug(`Filtered API endpoint path: "${value}"`);
+            return true;
+        }
+
+        if (this.isProtobufMetadata(value, line)) {
+            logger.debug(`Filtered Protobuf metadata: "${value}"`);
+            return true;
+        }
+
+        if (fileName && this.isTestFile(fileName)) {
+            if (this.isTestDataPattern(value, line)) {
+                logger.debug(`Filtered test data pattern: "${value}"`);
+                return true;
+            }
+        }
+
+        if (this.isObjectOrStructFieldAssignment(value, line, lowerLine)) {
+            logger.debug(`Filtered object/struct field assignment: "${value}"`);
+            return true;
+        }
+
+        if (this.isHashValueInTestContext(value, fileName, lowerLine)) {
+            logger.debug(`Filtered hash value in test context: "${value}"`);
+            return true;
+        }
+
+        // ML-based classification as final check (after all rule-based filters)
+        // This helps catch edge cases that rule-based filters might miss
+        if (pattern && fileName) {
+            if (this.mlClassifier.isFalsePositive(value, line, pattern, fileName)) {
+                return true;
+            }
         }
 
         return false;
@@ -597,7 +668,8 @@ export class FalsePositiveFilter {
     }
 
     /**
-     * Checks if value is a file path or import statement (e.g., "es/share/", "es/configure-ui")
+     * Language-agnostic: Checks if value is a file path or import statement
+     * Works for: JavaScript/TypeScript, Python, Go, Java, C#, Ruby, PHP, etc.
      */
     private isFilePathOrImportPath(value: string, lowerLine: string): boolean {
         // Clean the value (remove quotes, semicolons, etc.)
@@ -606,10 +678,29 @@ export class FalsePositiveFilter {
         
         // Check if it looks like a file path or import path
         if (cleanValue.includes('/') || cleanValue.includes('\\')) {
-            // Check if it's in an import statement or path configuration
-            const isInImportContext = lowerLine.includes('import') || 
+            // Language-agnostic import/require patterns
+            const isInImportContext = 
+                // JavaScript/TypeScript
+                lowerLine.includes('import') || 
                 lowerLine.includes('from ') || 
                 lowerLine.includes('require(') ||
+                // Python
+                lowerLine.includes('import ') ||
+                lowerLine.includes('from ') ||
+                // Go
+                lowerLine.includes('import ') ||
+                // Java
+                lowerLine.includes('import ') ||
+                lowerLine.includes('package ') ||
+                // C#
+                lowerLine.includes('using ') ||
+                // Ruby
+                lowerLine.includes('require ') ||
+                lowerLine.includes('require_relative ') ||
+                // PHP
+                lowerLine.includes('require ') ||
+                lowerLine.includes('include ') ||
+                // Configuration files
                 lowerLine.includes('"path"') ||
                 lowerLine.includes('"paths"') ||
                 lowerLine.includes('"include"') ||
@@ -631,8 +722,8 @@ export class FalsePositiveFilter {
             // Match paths like: es/path, es/path/to/file, path/to/file.ext
             const pathPattern = /^[a-zA-Z0-9_-]+(\/[a-zA-Z0-9_.-]+)+(\.[a-zA-Z0-9]+)?$/;
             
-            // Check for file extensions
-            const hasFileExtension = /\.(ts|tsx|js|jsx|json|constants|types|store|config|test|spec)$/i.test(cleanValue);
+            // Language-agnostic file extensions
+            const hasFileExtension = /\.(ts|tsx|js|jsx|json|constants|types|store|config|test|spec|py|go|java|cs|rb|php|cpp|h|hpp|cc|cxx|swift|kt|scala|clj|r|m|mm|pl|pm|sh|bash|zsh|fish)$/i.test(cleanValue);
             
             // Check for common path segments
             const hasPathSegments = cleanValue.includes('/') && 
@@ -847,6 +938,813 @@ export class FalsePositiveFilter {
                     !value.match(/^[a-f0-9]{32,}$/i)) {
                     return true;
                 }
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Checks if the detected value matches the variable/key name
+     * Supports: All naming conventions (snake_case, PascalCase, camelCase, kebab-case)
+     * This catches cases like: 
+     * - EVENT_SMTP_PASSWORD = "event_smtp_password"
+     * - AuthPathGetShareToken = "/share-token"
+     * where the value is just a string literal matching the variable name
+     */
+    private isValueMatchingKeyName(value: string, line: string): boolean {
+        const lowerValue = value.toLowerCase().replace(/^["']|["']$/g, '').replace(/^\/+|\/+$/g, ''); // Remove quotes and leading/trailing slashes
+        const lowerLine = line.toLowerCase();
+        
+        // Extract the key/variable name from the line (before = or :)
+        // Pattern: VariableName =, variableName =, VARIABLE_NAME =, variable_name =
+        // Supports PascalCase, camelCase, snake_case, UPPER_CASE
+        const keyMatch = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*[:=]/);
+        if (!keyMatch) {
+            return false;
+        }
+        
+        const keyName = keyMatch[1];
+        const lowerKeyName = keyName.toLowerCase();
+        
+        // Split key name into words (handle PascalCase, camelCase, snake_case, UPPER_CASE)
+        const keyWords = this.splitIntoWords(keyName).map(w => w.toLowerCase()).filter(w => w.length > 1);
+        
+        // Split value into words (handle kebab-case, snake_case, paths)
+        const valueWords = lowerValue.split(/[\/\-_\s]+/).filter(w => w.length > 1);
+        
+        if (keyWords.length === 0 || valueWords.length === 0) {
+            return false;
+        }
+        
+        // Normalize both (remove separators) for exact match check
+        const normalizeKey = keyWords.join('').toLowerCase();
+        const normalizeValue = valueWords.join('').toLowerCase();
+        
+        // Check if normalized values match (exact match)
+        if (normalizeKey === normalizeValue) {
+            return true;
+        }
+        
+        // Check if value is a substring of key (e.g., "share-token" in "AuthPathGetShareToken")
+        // or key contains value words
+        const valueWordsStr = valueWords.join('');
+        if (normalizeKey.includes(valueWordsStr) || valueWordsStr.includes(normalizeKey)) {
+            // Check if significant words from key appear in value
+            const significantKeyWords = keyWords.filter(w => w.length > 2);
+            const matchingWords = significantKeyWords.filter(kw => 
+                valueWords.some(vw => vw === kw || vw.includes(kw) || kw.includes(vw))
+            );
+            
+            // If 50%+ of significant words match, or if value words are all in key
+            if (matchingWords.length >= Math.ceil(significantKeyWords.length * 0.5) ||
+                valueWords.every(vw => keyWords.some(kw => kw.includes(vw) || vw.includes(kw)))) {
+                return true;
+            }
+        }
+        
+        // Special case: Path-like values that match constant name pattern
+        // e.g., AuthPathGetShareToken = "/share-token"
+        // Check if value words are a subset of key words
+        if (valueWords.length <= keyWords.length) {
+            const allValueWordsInKey = valueWords.every(vw => 
+                keyWords.some(kw => kw === vw || kw.includes(vw) || vw.includes(kw))
+            );
+            if (allValueWordsInKey && valueWords.length >= 2) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Splits a variable name into words, handling all naming conventions
+     * PascalCase: AuthPathGetShareToken -> [Auth, Path, Get, Share, Token]
+     * camelCase: authPathGetShareToken -> [auth, Path, Get, Share, Token]
+     * snake_case: auth_path_get_share_token -> [auth, path, get, share, token]
+     * UPPER_CASE: AUTH_PATH_GET_SHARE_TOKEN -> [AUTH, PATH, GET, SHARE, TOKEN]
+     */
+    private splitIntoWords(name: string): string[] {
+        // Handle snake_case and UPPER_CASE
+        if (name.includes('_')) {
+            return name.split('_').filter(w => w.length > 0);
+        }
+        
+        // Handle PascalCase and camelCase
+        // Split on capital letters: AuthPathGetShareToken -> [Auth, Path, Get, Share, Token]
+        const words: string[] = [];
+        let currentWord = '';
+        
+        for (let i = 0; i < name.length; i++) {
+            const char = name[i];
+            if (char >= 'A' && char <= 'Z' && currentWord.length > 0) {
+                // Found uppercase letter, start new word
+                words.push(currentWord);
+                currentWord = char;
+            } else {
+                currentWord += char;
+            }
+        }
+        
+        if (currentWord.length > 0) {
+            words.push(currentWord);
+        }
+        
+        return words.length > 0 ? words : [name];
+    }
+
+    /**
+     * Language-agnostic: Detects if value is a variable or parameter name
+     * Works for: JavaScript/TypeScript, Go, Python, Java, C#, Ruby, PHP, etc.
+     */
+    private isVariableOrParameterName(value: string, line: string, lowerLine: string): boolean {
+        const trimmedValue = value.trim();
+        const lowerValue = trimmedValue.toLowerCase();
+        
+        // Pattern: variable name followed by comma, semicolon, or assignment
+        // Examples: "password,", "secret;", "token:", "apiKey,"
+        const isVariablePattern = /^[a-zA-Z_][a-zA-Z0-9_]*[,;:]?\s*$/.test(trimmedValue);
+        
+        // Kebab-case pattern: path-to-secret, path-to-dynamic-secr
+        const isKebabCase = /^[a-z][a-z0-9-]+$/i.test(trimmedValue) && trimmedValue.includes('-');
+        
+        // Snake_case pattern: path_to_secret, path_with_many_items
+        const isSnakeCase = /^[a-z][a-z0-9_]+$/i.test(trimmedValue) && 
+                           trimmedValue.includes('_') && 
+                           !trimmedValue.match(/^[A-Z_]+$/); // Not ALL_CAPS (those are env vars)
+        
+        // Test variable patterns: secret_name_TestValidateCacheUpdateSecretValue
+        const isTestVariable = /^(test|mock|fake|secret_name_|path_)[A-Z]/.test(trimmedValue) ||
+                              /^(test|mock|fake|secret_name_|path_)[a-z0-9_-]+$/i.test(trimmedValue);
+        
+        if (isVariablePattern || isKebabCase || isSnakeCase || isTestVariable) {
+            // Check if it's in a function parameter context
+            // Pattern: function(param: Type), func(param Type), def func(param):
+            const isInFunctionParam = /(function|func|def|method|procedure)\s*\([^)]*/.test(lowerLine) ||
+                /\([^)]*:\s*(string|int|bool|Type|interface)/.test(lowerLine) ||
+                /:\s*(string|int|bool|Type|interface|Dictionary)/.test(lowerLine);
+            
+            // Check if it's in a variable declaration context
+            // Pattern: var/let/const/val/final/private/public variable
+            const isInDeclaration = /\b(var|let|const|val|final|private|public|protected|static)\s+/.test(lowerLine) ||
+                /\b(type|interface|struct|class)\s+/.test(lowerLine);
+            
+            // Check if it's in a struct/object literal
+            // Pattern: FieldName: variableName,
+            const isInStructLiteral = /:\s*[a-zA-Z_][a-zA-Z0-9_]*[,}]/.test(line);
+            
+            // Check if it's in a usage/example context
+            // Pattern: Usage: $0 <path-to-dynamic-secret>
+            const isInUsageExample = /usage:|example:|path-to|path_to|path_with/i.test(lowerLine);
+            
+            // Check if it's a parameter placeholder
+            // Pattern: <path-to-secret>, [path-to-secret], {path-to-secret}
+            const isParameterPlaceholder = /[<\[{][^>\]}]*/.test(line) && 
+                                          (trimmedValue.includes('-') || trimmedValue.includes('_'));
+            
+            if (isInFunctionParam || isInDeclaration || isInStructLiteral || isInUsageExample || isParameterPlaceholder) {
+                // Additional check: if it's a common variable name pattern
+                const commonVarPatterns = [
+                    /^(password|secret|token|key|apiKey|clientSecret|privateKey|accessToken)[,;:]?$/i,
+                    /^(value|val|data|param|arg|item|obj|result|response)[,;:]?$/i,
+                    /^(path|file|dir|url|uri|name|id|key|secret)[-_]?[a-z0-9_-]*$/i,
+                    /^path[-_]?(to|with|output|per)[-_]?[a-z0-9_-]*$/i
+                ];
+                
+                if (commonVarPatterns.some(p => p.test(trimmedValue))) {
+                    return true;
+                }
+                
+                // If it's kebab-case or snake_case and reasonable length, filter it
+                if ((isKebabCase || isSnakeCase) && trimmedValue.length < 60 && 
+                    !trimmedValue.includes('://') && !trimmedValue.includes('@')) {
+                    return true;
+                }
+                
+                // If it's short and looks like a variable name, filter it
+                if (trimmedValue.length < 30 && !trimmedValue.includes('://') && !trimmedValue.includes('@')) {
+                    return true;
+                }
+                
+                // Test variable patterns - more aggressive filtering
+                if (isTestVariable && trimmedValue.length < 80) {
+                    return true;
+                }
+            }
+            
+            // Standalone kebab-case or snake_case values that look like variable names
+            if ((isKebabCase || isSnakeCase) && 
+                trimmedValue.length < 50 && 
+                !trimmedValue.includes('://') && 
+                !trimmedValue.includes('@') &&
+                (lowerLine.includes('path') || lowerLine.includes('variable') || lowerLine.includes('param'))) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Language-agnostic: Detects if value is part of a function or method call
+     * Works for: All languages (Go, Python, Java, C#, JavaScript/TypeScript, Ruby, PHP, Rust, Swift, Kotlin, C/C++, etc.)
+     */
+    private isFunctionOrMethodCall(value: string, line: string, lowerLine: string): boolean {
+        const trimmedValue = value.trim();
+        
+        // ===== TYPE CONVERSIONS & CASTS (All Languages) =====
+        // Go: string(variable), []byte(data), int(value)
+        // C/C++: (int)value, static_cast<int>(value)
+        // Java/C#: (String)value, value as String
+        // Python: str(value), int(value), bytes(value)
+        // Rust: value as Type
+        if (/string\([^)]+\)|\[\]byte\([^)]+\)|int\([^)]+\)|float64\([^)]+\)|bool\([^)]+\)|uint\([^)]+\)/.test(line) ||
+            /\(int\)|\(string\)|\(char\)|\(float\)|\(double\)|\(bool\)|\(boolean\)/.test(line) ||
+            /static_cast|dynamic_cast|reinterpret_cast/.test(line) ||
+            /as\s+(String|Int|Float|Double|Bool|Boolean)/i.test(line) ||
+            /str\(|int\(|float\(|bool\(|bytes\(|list\(|dict\(|tuple\(/.test(lowerLine)) {
+            // Check if value is the result of a type conversion
+            if (/^string\(|^\[\]byte\(|^int\(|^float64\(|^bool\(|^uint\(|^\(int\)|^\(string\)|^as\s+/i.test(trimmedValue)) {
+                return true;
+            }
+            // Check if value appears in a type conversion context
+            const typeConversionPattern = /(string|\[\]byte|int|float64|bool|uint|str|int|float|bytes|list|dict|tuple|\(int\)|\(string\)|as\s+)/i.test(line);
+            if (typeConversionPattern && /^[a-zA-Z_][a-zA-Z0-9_]*[,};)]?\s*$/.test(trimmedValue)) {
+                return true;
+            }
+        }
+        
+        // ===== CONSTRUCTOR CALLS (All OOP Languages) =====
+        // Go: &TypeName{}, TypeName{}
+        // Java/C#/Kotlin: new TypeName(), new TypeName {}
+        // JavaScript/TypeScript: new TypeName()
+        // Python: TypeName()
+        // C++: new TypeName(), TypeName()
+        // Ruby: TypeName.new
+        // PHP: new TypeName()
+        if (/&[A-Z][a-zA-Z0-9]*\{/.test(line) || 
+            /^[A-Z][a-zA-Z0-9]*\{/.test(line.trim()) ||
+            /new\s+[A-Z][a-zA-Z0-9]*\s*[({]/.test(line)) {
+            // Check if value is part of constructor/initialization
+            if (/^&[A-Z]|^[A-Z][a-zA-Z0-9]*\{|^new\s+[A-Z]/i.test(trimmedValue) ||
+                /^[a-zA-Z_][a-zA-Z0-9_]*[,};)]?\s*$/.test(trimmedValue)) {
+                return true;
+            }
+        }
+        
+        // ===== FUNCTION/METHOD CALL PATTERNS (All Languages) =====
+        const functionCallPatterns = [
+            /[a-zA-Z_][a-zA-Z0-9_]*\s*\([^)]*/,      // function( - most languages
+            /\.[a-zA-Z_][a-zA-Z0-9_]*\s*\(/,         // .method( - OOP languages
+            /::[a-zA-Z_][a-zA-Z0-9_]*\s*\(/,         // ::method( - C++/PHP
+            /->[a-zA-Z_][a-zA-Z0-9_]*\s*\(/,         // ->method( - PHP/C++
+            /\[:['"]\w+['"]\]\s*\(/,                  // [:method]( - Ruby
+        ];
+        
+        const isInFunctionCall = functionCallPatterns.some(pattern => pattern.test(line) || pattern.test(lowerLine));
+        
+        if (isInFunctionCall) {
+            // Check if value appears to be a function name or parameter
+            const commonFunctionPatterns = [
+                // Common function prefixes
+                /^(validate|hash|encode|decode|encrypt|decrypt|get|set|create|update|delete|parse|stringify|serialize|deserialize)/i,
+                // Standard library patterns
+                /^(Base64|String|Utils|Helper|Manager|Service|Client|Factory|Builder)\./i,
+                /^(System|Math|Object|Array|List|Map|Collection|Stream)\./i,
+                // Language-specific standard libraries
+                /^(encoding_ex|encoding|json|xml|yaml|base64|crypto|hashlib)\./i,  // Go/Python
+                /^(java\.|javax\.|org\.|com\.)/i,  // Java packages
+                /^(System\.|Microsoft\.|Microsoft\.Extensions\.)/i,  // C#/.NET
+                /^(fs\.|path\.|os\.|util\.|http\.)/i,  // Node.js/Python
+                /^[A-Z][a-zA-Z0-9]*\.(Base64Encode|Base64Decode|Marshal|Unmarshal|Parse|ToString)/i,  // Go/Java/C#
+            ];
+            
+            // Check if value is a function name pattern
+            if (commonFunctionPatterns.some(p => p.test(value))) {
+                return true;
+            }
+            
+            // Check if it's a method call on the value
+            // Pattern: value.method() or value->method() or value::method()
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*\(/.test(value) ||
+                /^[a-zA-Z_][a-zA-Z0-9_]*->[a-zA-Z_][a-zA-Z0-9_]*\(/.test(value) ||
+                /^[a-zA-Z_][a-zA-Z0-9_]*::[a-zA-Z_][a-zA-Z0-9_]*\(/.test(value)) {
+                return true;
+            }
+            
+            // Method chaining: object.Method().AnotherMethod()
+            if (/[a-zA-Z_][a-zA-Z0-9]*\.[A-Z][a-zA-Z0-9]*\(/.test(line) ||
+                /[a-zA-Z_][a-zA-Z0-9]*->[a-zA-Z][a-zA-Z0-9]*\(/.test(line)) {
+                if (/^[a-zA-Z_][a-zA-Z0-9_]*[,};)]?\s*$/.test(trimmedValue)) {
+                    return true;
+                }
+            }
+        }
+        
+        // ===== FUNCTION CALLS WITH VARIABLE NAMES (All Languages) =====
+        if (/[a-zA-Z_][a-zA-Z0-9_]*\([^)]*\)/.test(line)) {
+            // If value looks like a function name or variable in function call
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*[,};)]?\s*$/.test(trimmedValue) && 
+                trimmedValue.length < 50 && 
+                !trimmedValue.includes('://') && 
+                !trimmedValue.includes('@')) {
+                // Additional check: is it in a function call context?
+                const funcCallMatch = line.match(/([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/);
+                if (funcCallMatch && funcCallMatch[1]) {
+                    // If value contains or matches function name pattern
+                    if (trimmedValue.includes(funcCallMatch[1]) || 
+                        trimmedValue.length < 30) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        // ===== LANGUAGE-SPECIFIC PATTERNS =====
+        
+        // Python: lambda functions, list/dict comprehensions
+        if (/lambda\s+\w+:|\[.*for\s+\w+\s+in|{.*for\s+\w+\s+in/.test(lowerLine)) {
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*[,}\])]?\s*$/.test(trimmedValue) && trimmedValue.length < 40) {
+                return true;
+            }
+        }
+        
+        // Ruby: method calls with blocks, symbol methods
+        if (/\.each\s*\{|\.map\s*\{|\.select\s*\{|\.find\s*\{|\[:['"]\w+['"]\]/.test(line)) {
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*[,}\])]?\s*$/.test(trimmedValue) && trimmedValue.length < 40) {
+                return true;
+            }
+        }
+        
+        // JavaScript/TypeScript: arrow functions, optional chaining
+        if (/=>|\.\?\.|\.\?\?/.test(line)) {
+            if (/^[a-zA-Z_$][a-zA-Z0-9_]*[,};)]?\s*$/.test(trimmedValue) && trimmedValue.length < 40) {
+                return true;
+            }
+        }
+        
+        // Rust: method calls with ::, trait methods
+        if (/::[a-zA-Z_][a-zA-Z0-9_]*\(|\.unwrap\(|\.expect\(|\.ok\(|\.unwrap_or\(/.test(line)) {
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*[,};)]?\s*$/.test(trimmedValue) && trimmedValue.length < 40) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Language-agnostic: Detects code patterns that are commonly false positives
+     * Works for: Go, Python, Java, C#, JavaScript/TypeScript, Ruby, PHP, Rust, Swift, Kotlin, C/C++, and more
+     */
+    private isCodePattern(value: string, line: string, lowerLine: string, fileName?: string): boolean {
+        const trimmedValue = value.trim();
+        const fileExt = fileName ? fileName.split('.').pop()?.toLowerCase() : '';
+        
+        // ===== TYPE CONVERSIONS & CASTS =====
+        // Go: string(variable), []byte(data), int(value)
+        // C/C++: (int)value, static_cast<int>(value)
+        // Java/C#: (String)value, value as String
+        // Python: str(value), int(value), bytes(value)
+        // Rust: value as Type, Type::from(value)
+        if (/string\([^)]+\)|\[\]byte\([^)]+\)|int\([^)]+\)|float64\([^)]+\)|bool\([^)]+\)|uint\([^)]+\)/.test(line) ||
+            /\(int\)|\(string\)|\(char\)|\(float\)|\(double\)|\(bool\)|\(boolean\)/.test(line) ||
+            /static_cast|dynamic_cast|reinterpret_cast/.test(line) ||
+            /as\s+(String|Int|Float|Double|Bool|Boolean)/i.test(line) ||
+            /str\(|int\(|float\(|bool\(|bytes\(|list\(|dict\(|tuple\(/.test(lowerLine)) {
+            // If value is the result of type conversion/cast
+            if (/^string\(|^\[\]byte\(|^int\(|^float64\(|^bool\(|^uint\(|^\(int\)|^\(string\)|^as\s+/i.test(trimmedValue)) {
+                return true;
+            }
+            // If value is a variable name in type conversion context
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*[,};)]?\s*$/.test(trimmedValue) && trimmedValue.length < 50) {
+                return true;
+            }
+        }
+        
+        // ===== CONSTRUCTOR CALLS & OBJECT INITIALIZATION =====
+        // Go: &TypeName{}, TypeName{}
+        // Java/C#/Kotlin: new TypeName(), new TypeName {}
+        // JavaScript/TypeScript: new TypeName(), new TypeName {}
+        // Python: TypeName(), TypeName()
+        // C++: TypeName(), new TypeName()
+        // Ruby: TypeName.new, TypeName.new()
+        // PHP: new TypeName(), new TypeName
+        if (/&[A-Z][a-zA-Z0-9]*\{|^[A-Z][a-zA-Z0-9]*\{/.test(line) ||
+            /new\s+[A-Z][a-zA-Z0-9]*\s*[({]/.test(line) ||
+            /[A-Z][a-zA-Z0-9]*\s*\([^)]*\)/.test(line) && /new\s+/.test(lowerLine)) {
+            // Check if value is part of constructor/initialization
+            if (/^&[A-Z]|^[A-Z][a-zA-Z0-9]*\{|^new\s+[A-Z]/i.test(trimmedValue)) {
+                return true;
+            }
+            // Check if value is a field name or variable in object literal
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*[,};)]?\s*$/.test(trimmedValue) && trimmedValue.length < 60) {
+                return true;
+            }
+        }
+        
+        // ===== METHOD CALLS =====
+        // All languages: object.method(), Class.method(), object->method()
+        if (/[a-zA-Z_][a-zA-Z0-9]*\.[a-zA-Z_][a-zA-Z0-9]*\(/.test(line) ||
+            /[a-zA-Z_][a-zA-Z0-9]*->[a-zA-Z_][a-zA-Z0-9]*\(/.test(line) ||
+            /[a-zA-Z_][a-zA-Z0-9]*::[a-zA-Z_][a-zA-Z0-9]*\(/.test(line)) {
+            // Check if value is a method name or result
+            if (/^[a-zA-Z_][a-zA-Z0-9]*\.[a-zA-Z]/.test(trimmedValue) ||
+                /^[a-zA-Z_][a-zA-Z0-9]*->[a-zA-Z]/.test(trimmedValue) ||
+                /^[a-zA-Z_][a-zA-Z0-9]*::[a-zA-Z]/.test(trimmedValue) ||
+                (/^[a-zA-Z_][a-zA-Z0-9]*[,};)]?\s*$/.test(trimmedValue) && trimmedValue.length < 50)) {
+                return true;
+            }
+        }
+        
+        // ===== FUNCTION CALLS =====
+        // All languages: functionName(param), Class.functionName(param)
+        if (/[a-zA-Z_][a-zA-Z0-9_]*\s*\([^)]*\)/.test(line)) {
+            // If value looks like a function name or variable in function call
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*[,};)]?\s*$/.test(trimmedValue) && 
+                trimmedValue.length < 50 && 
+                !trimmedValue.includes('://') && 
+                !trimmedValue.includes('@') &&
+                !trimmedValue.match(/^[a-f0-9]{32,}$/i)) { // Not a hex hash
+                // Check if it's in a function call context
+                const funcCallMatch = line.match(/([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/);
+                if (funcCallMatch && funcCallMatch[1]) {
+                    // If value contains or matches function name pattern
+                    if (trimmedValue.includes(funcCallMatch[1]) || 
+                        trimmedValue.length < 30) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        // ===== PROPERTY/FIELD ACCESS =====
+        // JavaScript/TypeScript/Python: obj.property, obj.field
+        // Go: obj.Field, obj.PrivateKey
+        // Java/C#/Kotlin: obj.field, obj.getField()
+        // C++: obj->field, obj.field
+        // Ruby: obj.field, obj[:field]
+        // PHP: $obj->field, $obj['field']
+        if (/[a-zA-Z_$][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9]*/.test(line) && 
+            !line.includes('(')) { // Not a method call
+            if (/^[a-zA-Z_$][a-zA-Z0-9]*\.[a-zA-Z]/.test(trimmedValue) ||
+                /^[a-zA-Z_$][a-zA-Z0-9]*\[/.test(trimmedValue) ||
+                (/^[a-zA-Z_$][a-zA-Z0-9]*[,};)]?\s*$/.test(trimmedValue) && trimmedValue.length < 40)) {
+                return true;
+            }
+        }
+        
+        // ===== PACKAGE/MODULE IMPORTS =====
+        // Go: encoding_ex.Base64Encode, types.Secret
+        // Python: json.dumps, base64.b64encode
+        // Java: java.util.Map, org.apache.commons
+        // JavaScript/TypeScript: fs.readFile, path.join
+        // C#: System.IO, Microsoft.Extensions
+        // Ruby: require 'json', JSON.parse
+        // PHP: use Namespace\Class, \Namespace\Class
+        if (/[a-z][a-zA-Z0-9_]*\.[A-Z]/.test(line) && 
+            (lowerLine.includes('import') || lowerLine.includes('from ') || 
+             lowerLine.includes('require') || lowerLine.includes('using ') ||
+             lowerLine.includes('package ') || lowerLine.includes('include'))) {
+            if (/^[a-z][a-zA-Z0-9_]*\.[A-Z]/.test(trimmedValue) ||
+                /^[a-z][a-zA-Z0-9_]*\.[a-z]/.test(trimmedValue)) {
+                return true;
+            }
+        }
+        
+        // ===== LANGUAGE-SPECIFIC PATTERNS =====
+        
+        // Python: dict/list comprehensions, lambda functions
+        if (fileExt === 'py' || lowerLine.includes('lambda ') || lowerLine.includes('[') && lowerLine.includes('for ')) {
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*[,}\])]?\s*$/.test(trimmedValue) && trimmedValue.length < 40) {
+                return true;
+            }
+        }
+        
+        // Java/C#: getter/setter patterns, builder patterns
+        if (/\.get[A-Z]|\.set[A-Z]|\.is[A-Z]|\.has[A-Z]/.test(line)) {
+            if (/^[a-zA-Z_][a-zA-Z0-9]*[,};)]?\s*$/.test(trimmedValue) && trimmedValue.length < 40) {
+                return true;
+            }
+        }
+        
+        // JavaScript/TypeScript: optional chaining, nullish coalescing
+        if (/\.\?\.|\.\?\?/.test(line)) {
+            if (/^[a-zA-Z_$][a-zA-Z0-9]*[,};)]?\s*$/.test(trimmedValue) && trimmedValue.length < 40) {
+                return true;
+            }
+        }
+        
+        // Ruby: method calls with symbols, hash access
+        if (/\[:|\['|\["|\.new|\.each|\.map|\.select/.test(line)) {
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*[,}\])]?\s*$/.test(trimmedValue) && trimmedValue.length < 40) {
+                return true;
+            }
+        }
+        
+        // Rust: method calls with ::, trait methods
+        if (/::[a-zA-Z_][a-zA-Z0-9_]*\(|\.unwrap\(|\.expect\(|\.ok\(/.test(line)) {
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*[,};)]?\s*$/.test(trimmedValue) && trimmedValue.length < 40) {
+                return true;
+            }
+        }
+        
+        // C/C++: pointer dereference, struct member access
+        if (/->[a-zA-Z_]|\.\w+\s*=|struct\s+\w+\s*\{/.test(line)) {
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*[,};)]?\s*$/.test(trimmedValue) && trimmedValue.length < 40) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Language-agnostic: Detects template strings/placeholders
+     * Works for: Template engines, SQL templates, configuration templates
+     */
+    private isTemplateString(value: string): boolean {
+        // Common template patterns:
+        // {{variable}}, {{.Field}}, ${variable}, #{variable}, %{variable}, {variable}
+        const templatePatterns = [
+            /\{\{[^}]+\}\}/,           // {{variable}}
+            /\{\{\.[^}]+\}\}/,         // {{.Field}}
+            /\$\{[^}]+\}/,             // ${variable}
+            /#\{[^}]+\}/,               // #{variable} (Ruby)
+            /%\{[^}]+\}/,               // %{variable}
+            /\{[a-zA-Z_][a-zA-Z0-9_]+\}/, // {variable}
+            /<[a-zA-Z_][a-zA-Z0-9_]+>/,  // <variable>
+            /\[\[[^\]]+\]\]/,          // [[variable]]
+        ];
+        
+        // Check if value contains template syntax
+        if (templatePatterns.some(pattern => pattern.test(value))) {
+            return true;
+        }
+        
+        // Check for common template variable names
+        const templateVarNames = ['{{name}}', '{{username}}', '{{password}}', '{{token}}', 
+                                 '{{key}}', '{{secret}}', '{{value}}', '{{id}}'];
+        if (templateVarNames.some(template => value.includes(template))) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Language-agnostic: Detects API endpoint paths
+     * Works for: All languages that define API routes
+     */
+    private isApiEndpointPath(value: string, lowerLine: string): boolean {
+        const cleanValue = value.replace(/^["']|["';]+$/g, '').trim();
+        
+        // Pattern: paths starting with /api/, /config/, /v1/, /v2/, etc.
+        if (/^\/api\//.test(cleanValue) || 
+            /^\/config\//.test(cleanValue) ||
+            /^\/v\d+\//.test(cleanValue) ||
+            /^\/change-/.test(cleanValue) ||
+            /^\/reset-/.test(cleanValue) ||
+            /^\/rotate-/.test(cleanValue) ||
+            /^\/gen-/.test(cleanValue) ||
+            /^\/refresh-/.test(cleanValue)) {
+            
+            // Check if it's in a route/endpoint definition context
+            const isRouteContext = lowerLine.includes('route') ||
+                lowerLine.includes('endpoint') ||
+                lowerLine.includes('path') ||
+                lowerLine.includes('const') && lowerLine.includes('path') ||
+                lowerLine.includes('=') && (lowerLine.includes('/api/') || lowerLine.includes('/config/'));
+            
+            if (isRouteContext || cleanValue.length < 100) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Language-agnostic: Detects Protobuf metadata
+     * Works for: All languages using Protobuf
+     */
+    private isProtobufMetadata(value: string, line: string): boolean {
+        // Pattern: protobuf tags like "bytes,1,opt,name=key,proto3"
+        if (/bytes,\d+,opt,name=/.test(value) ||
+            /protobuf_key:/.test(line) ||
+            /protobuf_val:/.test(line) ||
+            /protobuf:"bytes/.test(line)) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Language-agnostic: Detects test files
+     * Works for: All languages with test file conventions
+     */
+    private isTestFile(fileName: string): boolean {
+        const lowerFileName = fileName.toLowerCase();
+        
+        // Common test file patterns
+        const testPatterns = [
+            /_test\./,           // *_test.go, *_test.py, *_test.js
+            /\.test\./,         // *.test.js, *.test.ts
+            /\.spec\./,         // *.spec.js, *.spec.ts
+            /test_/,            // test_*.py
+            /\/test\//,         // test/ directory
+            /\/tests\//,        // tests/ directory
+            /\/spec\//,         // spec/ directory
+            /\/__tests__\//,    // __tests__/ directory
+            /testdata/,         // testdata directory
+            /testutils/,        // testutils directory
+        ];
+        
+        return testPatterns.some(pattern => pattern.test(lowerFileName));
+    }
+
+    /**
+     * Language-agnostic: Detects test data patterns
+     * Works for: All languages
+     * Enhanced with more comprehensive test patterns
+     */
+    private isTestDataPattern(value: string, line: string): boolean {
+        const lowerLine = line.toLowerCase();
+        const lowerValue = value.toLowerCase();
+        
+        // Common test password patterns (expanded list)
+        const testPasswords = [
+            'password123', 'test123', 'target1234', 'admin123', 
+            'testpassword', 'dummypassword', 'mockpassword',
+            'newpassword123!', 'newpassword123', 'password123!',
+            'testpassword123', 'adminpass', 'testpass',
+            '2federatem0re', 'saPassword', 'oldPass'
+        ];
+        if (testPasswords.includes(lowerValue)) {
+            return true;
+        }
+        
+        // AWS Account ID pattern in test context (123456789012, 123456789042, etc.)
+        // These are commonly used test account IDs
+        if (/^1234567890\d{2}$/.test(value) || /^9\d{11}$/.test(value)) {
+            // Check if it's in a test context
+            if (lowerLine.includes('test') || 
+                lowerLine.includes('mock') || 
+                lowerLine.includes('example') ||
+                lowerLine.includes('acc-') ||
+                lowerLine.includes('account') ||
+                lowerLine.includes('arn:aws')) {
+                return true;
+            }
+        }
+        
+        // Pattern: test variable names
+        if (/^(test|mock|fake|dummy|stub|spy)[A-Z]/.test(value) ||
+            /^(expected|actual|result|tmp|temp)[A-Z]/.test(value)) {
+            return true;
+        }
+        
+        // Pattern: test token patterns (expanded)
+        if (/^test[-_]token/i.test(value) ||
+            /^mock[-_]secret/i.test(value) ||
+            /^fake[-_]key/i.test(value) ||
+            /^secret_name_test/i.test(value) ||
+            /^test[-_]secret/i.test(value) ||
+            /^dummy[-_]token/i.test(value)) {
+            return true;
+        }
+        
+        // Pattern: test hash/token values (low entropy, common in tests)
+        // e.g., "e2n64jlr9gpamtn6oolikbxmh8f2vtce", "e6f2a011900dbb2a7ee579aaeca22087"
+        if (/^[a-f0-9]{20,40}$/i.test(value) && value.length >= 20 && value.length <= 40) {
+            // Check if it's in a test context and has low entropy
+            const entropy = this.calculateSimpleEntropy(value);
+            if (entropy < 3.5 && (lowerLine.includes('test') || 
+                                  lowerLine.includes('mock') || 
+                                  lowerLine.includes('dummy') ||
+                                  lowerLine.includes('fake'))) {
+                return true;
+            }
+        }
+        
+        // Pattern: simple test values
+        if (value.length < 15 && /^[a-z0-9_-]+$/i.test(value) && 
+            (lowerLine.includes('test') || lowerLine.includes('mock') || lowerLine.includes('fake'))) {
+            return true;
+        }
+        
+        // Pattern: test passwords with special characters but common patterns
+        if (/^(test|mock|fake|dummy|admin|password)[0-9!@#$%^&*]+$/i.test(value)) {
+            return true;
+        }
+        
+        // Pattern: Go test struct field assignments with test values
+        // e.g., Password: "NewPassword123!", Key: "key01-updated"
+        if (lowerLine.includes(':') && 
+            (lowerValue.includes('updated') || 
+             lowerValue.includes('test') ||
+             lowerValue.match(/^(new|old|test|mock|fake|dummy)[a-z0-9!@#$%^&*]+$/i))) {
+            // Check if it's a struct field assignment
+            if (/[A-Z][a-zA-Z0-9_]*:\s*["']?/.test(line)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Simple entropy calculation for test pattern detection
+     */
+    private calculateSimpleEntropy(str: string): number {
+        if (!str || str.length === 0) return 0;
+        
+        const charCounts = new Map<string, number>();
+        for (const char of str) {
+            charCounts.set(char, (charCounts.get(char) || 0) + 1);
+        }
+        
+        let entropy = 0;
+        const length = str.length;
+        
+        for (const count of charCounts.values()) {
+            const probability = count / length;
+            entropy -= probability * Math.log2(probability);
+        }
+        
+        return entropy;
+    }
+
+    /**
+     * Language-agnostic: Detects object/struct field assignments
+     * Works for: JavaScript/TypeScript, Go, Python, Java, C#, Ruby, etc.
+     */
+    private isObjectOrStructFieldAssignment(value: string, line: string, lowerLine: string): boolean {
+        // Pattern: FieldName: variableName, or field_name: variable_name
+        // Examples: Password: passwordValue, secret: secretValue, private_key: privateKey
+        const fieldAssignmentPatterns = [
+            /[A-Z][a-zA-Z0-9_]*:\s*[a-zA-Z_][a-zA-Z0-9_]*[,}]/,  // Go/JS: FieldName: variable,
+            /[a-z_][a-zA-Z0-9_]*:\s*[a-zA-Z_][a-zA-Z0-9_]*[,}]/, // Python/JS: field_name: variable,
+            /"[a-zA-Z_][a-zA-Z0-9_]*":\s*[a-zA-Z_][a-zA-Z0-9_]*[,}]/, // JSON: "field": variable,
+        ];
+        
+        const isFieldAssignment = fieldAssignmentPatterns.some(pattern => pattern.test(line) || pattern.test(lowerLine));
+        
+        if (isFieldAssignment) {
+            // Check if value matches a variable name pattern
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*[,}]?\s*$/.test(value.trim())) {
+                // Check if it's a common field name
+                const commonFieldNames = ['password', 'secret', 'token', 'key', 'apiKey', 
+                                         'clientSecret', 'privateKey', 'accessToken', 'value'];
+                if (commonFieldNames.some(name => value.toLowerCase().includes(name))) {
+                    return true;
+                }
+                
+                // If it's short and looks like a variable, filter it
+                if (value.length < 40 && !value.includes('://') && !value.includes('@')) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Language-agnostic: Detects hash values in test context
+     * Works for: All languages
+     */
+    private isHashValueInTestContext(value: string, fileName: string | undefined, lowerLine: string): boolean {
+        if (!fileName) {
+            return false;
+        }
+        
+        // Check if it's a test file
+        if (!this.isTestFile(fileName)) {
+            return false;
+        }
+        
+        // Pattern: SHA256, MD5, SHA1 hashes
+        const hashPatterns = [
+            /^[a-f0-9]{64}$/i,  // SHA256
+            /^[a-f0-9]{32}$/i,  // MD5
+            /^[a-f0-9]{40}$/i,  // SHA1
+        ];
+        
+        const cleanValue = value.replace(/^["']|["';]+$/g, '').trim();
+        
+        if (hashPatterns.some(pattern => pattern.test(cleanValue))) {
+            // Check if it's in a test context (test data, mock data, etc.)
+            if (lowerLine.includes('test') || 
+                lowerLine.includes('mock') || 
+                lowerLine.includes('dummy') ||
+                lowerLine.includes('fake') ||
+                lowerLine.includes('signature') ||
+                lowerLine.includes('fingerprint') ||
+                lowerLine.includes('hash')) {
+                return true;
             }
         }
         

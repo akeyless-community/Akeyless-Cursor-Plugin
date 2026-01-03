@@ -17,7 +17,9 @@ export class ScannerConfigManager {
                 password: config?.entropyThresholds?.password ?? 3.0,
                 token: config?.entropyThresholds?.token ?? 4.0,
                 connectionString: config?.entropyThresholds?.connectionString ?? 3.5
-            }
+            },
+            mlEnabled: config?.mlEnabled ?? true,
+            mlConfidenceThreshold: config?.mlConfidenceThreshold ?? 0.7
         };
     }
 

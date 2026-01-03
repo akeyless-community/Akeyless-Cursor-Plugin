@@ -65,7 +65,7 @@ export class SecretScanner {
                     }
 
                     // Skip if it's a false positive
-                    if (this.falsePositiveFilter.isFalsePositive(value, line, pattern)) {
+                    if (this.falsePositiveFilter.isFalsePositive(value, line, pattern, document.fileName)) {
                         continue;
                     }
 
@@ -255,6 +255,8 @@ export class SecretScanner {
         developmentMode?: boolean;
         minEntropy?: number;
         skipDevelopmentValues?: boolean;
+        mlEnabled?: boolean;
+        mlConfidenceThreshold?: number;
     }): void {
         const updates: Partial<ScannerConfig> = {};
 
@@ -267,12 +269,29 @@ export class SecretScanner {
         if (options.skipDevelopmentValues !== undefined) {
             updates.skipDevelopmentValues = options.skipDevelopmentValues;
         }
+        if (options.mlEnabled !== undefined) {
+            updates.mlEnabled = options.mlEnabled;
+        }
+        if (options.mlConfidenceThreshold !== undefined) {
+            updates.mlConfidenceThreshold = options.mlConfidenceThreshold;
+        }
 
         this.configManager = this.configManager.with(updates);
         // Recreate filter with new config
         (this as any).falsePositiveFilter = new FalsePositiveFilter(this.configManager.get());
 
         logger.info('Scanner configuration updated:', this.configManager.get());
+    }
+    
+    /**
+     * Loads configuration from VS Code settings
+     */
+    static loadFromVSCodeSettings(): Partial<ScannerConfig> {
+        const config = vscode.workspace.getConfiguration('akeyless');
+        return {
+            mlEnabled: config.get<boolean>('ml.enabled', true),
+            mlConfidenceThreshold: config.get<number>('ml.confidenceThreshold', 0.7)
+        };
     }
 
     /**
@@ -303,7 +322,13 @@ export class SecretScanner {
 
     private static getDefaultInstance(): SecretScanner {
         if (!SecretScanner.defaultInstance) {
-            SecretScanner.defaultInstance = new SecretScanner();
+            const instance = new SecretScanner();
+            // Load ML settings from VS Code configuration
+            const mlConfig = SecretScanner.loadFromVSCodeSettings();
+            if (mlConfig.mlEnabled !== undefined || mlConfig.mlConfidenceThreshold !== undefined) {
+                instance.configure(mlConfig);
+            }
+            SecretScanner.defaultInstance = instance;
         }
         return SecretScanner.defaultInstance;
     }

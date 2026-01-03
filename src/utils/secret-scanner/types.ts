@@ -28,6 +28,8 @@ export interface ScannerConfig {
         token: number;
         connectionString: number;
     };
+    mlEnabled?: boolean; // Enable ML-based false positive classification
+    mlConfidenceThreshold?: number; // ML confidence threshold (0-1, default 0.7)
 }
 
 export interface ScanResult {
