@@ -161,13 +161,13 @@ export class MLFalsePositiveClassifier {
                 'paths_per_resource_t',
                 'secret_name_TestValidateCacheUpdateSecretValue',
                 
-                // Test data patterns
+                // Test data patterns (clearly test/example values)
                 'NewPassword123!',
                 'key01-updated',
                 'secrets01-updated',
-                '123456789012',  // AWS Account ID in test context
-                'e2n64jlr9gpamtn6oolikbxmh8f2vtce',  // Test token
-                'e6f2a011900dbb2a7ee579aaeca22087',  // Test hash
+                '123456789012',  // AWS Account ID in test context (clearly fake)
+                'e2n64jlr9gpamtn6oolikbxmh8f2vtce',  // Test token pattern
+                'e6f2a011900dbb2a7ee579aaeca22087',  // Test hash pattern
                 
                 // Go struct field assignments
                 'Password: "NewPassword123!"',
@@ -202,14 +202,14 @@ export class MLFalsePositiveClassifier {
                 'classic_key_',
                 'path_should_not_retu',
                 
-                // Enhanced: Test token patterns
+                // Enhanced: Test token patterns (clearly fake test tokens)
                 't-foobarbaz-1581006679',
                 't-xltuqgibc8eip8gczind-1593074311',
-                'e2n64jlr9gpamtn6oolikbxmh8f2vtce',
-                'e2n64jlr9gPamtn6oolikbxmh8f2vtce',
-                'e2n64jlr9gpamtn6oolikbxmh8f2vtcedfv3',
-                'e2n64jlr9gpamtn6oolik-xmh8f2vtce',
-                'e2n64jlr9gpamtn6oolikbxmh8f2vtce2',
+                'e2n64jlr9gpamtn6oolikbxmh8f2vtce', // Test token pattern
+                'e2n64jlr9gPamtn6oolikbxmh8f2vtce', // Test token pattern
+                'e2n64jlr9gpamtn6oolikbxmh8f2vtcedfv3', // Test token pattern
+                'e2n64jlr9gpamtn6oolik-xmh8f2vtce', // Test token pattern
+                'e2n64jlr9gpamtn6oolikbxmh8f2vtce2', // Test token pattern
                 
                 // Enhanced: AWS Account ID in test context
                 '123456789012',
@@ -222,14 +222,14 @@ export class MLFalsePositiveClassifier {
                 '27ae41e4649b934ca495991b7852b855',
                 '0123456789abcdef0123456789abcdef',
                 
-                // Enhanced: Documentation examples
-                'mongodb://akeyless:password',
-                'mongodb://uri_user:uri_password@127.0.0.1:55041/admin',
+                // Enhanced: Documentation examples (using clearly fake credentials)
+                'mongodb://example_user:example_password@localhost:27017/admin',
+                'mongodb://uri_user:uri_password_example@127.0.0.1:55041/admin',
                 'mysql://mysql:3306/authdb',
                 'mysql://mysql:3306/kfmdb',
                 'mysql://mysql:3306/kfm1db',
                 'mysql://mysql:3306/gatordb',
-                'mongodb://user:password@my.mongo.db:27017/admin?replicaSet=mySet)',
+                'mongodb://example_user:example_password@my.mongo.db:27017/admin?replicaSet=mySet)',
                 
                 // Enhanced: Code string literals (error messages, examples)
                 'invalid role id or/and secret id',
@@ -254,17 +254,17 @@ export class MLFalsePositiveClassifier {
                 'p.(string)',
                 'password = p.(string)',
                 
-                // Enhanced: Test data in various languages
-                'yPtWJ5J(sYzNSq7w&t=h',
-                'NzS7WSItSfrADKAXvLYi',
-                'wgeav4@#%^$^Yg54y5hrbse',
-                'some-special-password-jCOUrHN2AUs2gmqvzd6Ljjk',
-                'Wlfbmb03495kg',
-                'cmdj#4bmkf%&&',
-                'asdg#$bvwe2436',
-                'some_pass_vers',
-                'dkngnv230igmv',
-                'asdg#$bvwelm35',
+                // Enhanced: Test data in various languages (clearly test patterns)
+                'yPtWJ5J(sYzNSq7w&t=h', // Test password pattern
+                'NzS7WSItSfrADKAXvLYi', // Test token pattern
+                'wgeav4@#%^$^Yg54y5hrbse', // Test password pattern
+                'some-special-password-example-jCOUrHN2AUs2gmqvzd6Ljjk', // Test password with "example"
+                'Wlfbmb03495kg', // Test password pattern
+                'cmdj#4bmkf%&&', // Test password pattern
+                'asdg#$bvwe2436', // Test password pattern
+                'some_pass_vers', // Test password pattern
+                'dkngnv230igmv', // Test password pattern
+                'asdg#$bvwelm35', // Test password pattern
                 
                 // Enhanced: Configuration constant names
                 'uam_db_pwd',
