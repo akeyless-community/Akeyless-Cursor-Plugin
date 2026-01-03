@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { AkeylessCLI } from './services/akeyless-cli';
 import { SecretsTreeProvider } from './providers/secrets-tree-provider';
+import { SecretCompletionProvider } from './providers/secret-completion-provider';
 import { CommandManager } from './commands';
 import { VIEWS, MESSAGES } from './constants';
 import { logger } from './utils/logger';
@@ -20,6 +21,19 @@ export function activate(context: vscode.ExtensionContext) {
         // Register tree data provider
         logger.info('📋 Registering tree data provider for secrets explorer');
         vscode.window.registerTreeDataProvider(VIEWS.SECRETS_EXPLORER, secretsTreeProvider);
+
+        // Register completion provider for secret name autocomplete
+        logger.info('💡 Registering completion provider for secret name suggestions');
+        const completionProvider = new SecretCompletionProvider(secretsTreeProvider);
+        const completionDisposable = vscode.languages.registerCompletionItemProvider(
+            { scheme: 'file' }, // Works for all file types
+            completionProvider,
+            '/', // Trigger on forward slash (common in secret paths)
+            '"', // Trigger on double quote
+            "'", // Trigger on single quote
+            '`'  // Trigger on backtick
+        );
+        context.subscriptions.push(completionDisposable);
 
         // Initialize and register commands
         const commandManager = new CommandManager(akeylessCLI, secretsTreeProvider);
