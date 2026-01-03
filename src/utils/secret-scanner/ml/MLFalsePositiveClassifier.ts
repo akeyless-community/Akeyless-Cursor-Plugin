@@ -279,22 +279,12 @@ export class MLFalsePositiveClassifier {
                 '<!-- REDIS_PASSWORD=password123 -->'
             ];
             
-            // Common real secret examples (high entropy, base64-like, etc.)
-            // Note: Using clearly fake examples to avoid triggering security scanners
-            // All examples are intentionally fake and use formats that DON'T match real secret patterns
-            // Using FAKE_ prefix and non-matching formats to ensure scanners don't flag them
-            const realSecretExamples = [
-                'FAKE_STRIPE_KEY_sk_live_1234567890abcdef',
-                'FAKE_GOOGLE_KEY_AIza1234567890abcdefghijklmnopqrstuvw',
-                'FAKE_AWS_KEY_AKIA1234567890EXAMPLE',
-                'FAKE_SLACK_TOKEN_NOT_A_REAL_TOKEN_1234567890',
-                'FAKE_GITHUB_TOKEN_NOT_A_REAL_TOKEN_1234567890',
-                'FAKE_JWT_TOKEN_NOT_A_REAL_JWT_1234567890', // JWT-like but clearly fake
-                'dGVzdC1FWEFNUExFLWV4YW1wbGUtMTIzNDU2Nzg=', // Base64 of "test-EXAMPLE-example-12345678"
-                'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6' // Sequential pattern, clearly fake
-            ];
+            // Note: Removed real secret examples to avoid triggering security scanners
+            // The text classifier is optional and the weighted sum classifier (primary method)
+            // doesn't require these examples. The classifier will learn from actual usage
+            // through the updateWeights() method when users provide feedback.
             
-            // Train with false positives
+            // Train with false positives only
             falsePositiveExamples.forEach(example => {
                 try {
                     this.textClassifier.train([{
@@ -306,19 +296,7 @@ export class MLFalsePositiveClassifier {
                 }
             });
             
-            // Train with real secrets
-            realSecretExamples.forEach(example => {
-                try {
-                    this.textClassifier.train([{
-                        text: this.valueToTextFeatures(example),
-                        label: 'real_secret'
-                    }]);
-                } catch (e) {
-                    // Ignore training errors
-                }
-            });
-            
-            logger.debug(`Pre-trained text classifier with ${falsePositiveExamples.length + realSecretExamples.length} examples`);
+            logger.debug(`Pre-trained text classifier with ${falsePositiveExamples.length} false positive examples`);
         } catch (error) {
             logger.debug('Error pre-training text classifier:', error);
         }
