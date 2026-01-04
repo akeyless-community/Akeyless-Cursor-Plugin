@@ -7,7 +7,7 @@ import { CopySecretValueCommand } from '../../presentation/commands/CopySecretVa
 import { ClearHighlightsCommand } from '../../presentation/commands/ClearHighlightsCommand';
 import { SearchCommand } from '../../presentation/commands/SearchCommand';
 import { LoadMoreCommand } from '../../presentation/commands/LoadMoreCommand';
-import { GenerateSecretNameCommand } from '../../presentation/commands/GenerateSecretNameCommand';
+import { FocusViewCommand } from '../../presentation/commands/FocusViewCommand';
 import { logger } from '../../utils/logger';
 
 /**
@@ -42,7 +42,7 @@ export class CommandFactory {
             highlightingManager
         ));
         commands.push(new ClearHighlightsCommand(diagnosticsManager, highlightingManager));
-        commands.push(new GenerateSecretNameCommand());
+        commands.push(new FocusViewCommand());
 
         logger.info(`✅ Created ${commands.length} commands`);
         return commands;

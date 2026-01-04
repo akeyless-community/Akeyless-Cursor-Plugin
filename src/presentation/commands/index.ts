@@ -9,6 +9,6 @@ export { CopySecretValueCommand } from './CopySecretValueCommand';
 export { ClearHighlightsCommand } from './ClearHighlightsCommand';
 export { SearchCommand } from './SearchCommand';
 export { LoadMoreCommand } from './LoadMoreCommand';
-export { GenerateSecretNameCommand } from './GenerateSecretNameCommand';
+export { FocusViewCommand } from './FocusViewCommand';
 export { CommandRegistry } from './CommandRegistry';
 

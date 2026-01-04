@@ -101,27 +101,8 @@ export class CopySecretValueCommand extends BaseCommand {
             
             await vscode.env.clipboard.writeText(secretValue);
             
-            // Show the value in the notification (truncate if too long for readability)
-            const displayValue = secretValue.length > 100 
-                ? secretValue.substring(0, 100) + '...' 
-                : secretValue;
-            
-            if (secretValue.length > 200) {
-                const action = await vscode.window.showInformationMessage(
-                    `✅ Secret value copied to clipboard!\n\nValue: ${displayValue}`,
-                    'View Full Content'
-                );
-                
-                if (action === 'View Full Content') {
-                    const document = await vscode.workspace.openTextDocument({
-                        content: secretValue,
-                        language: 'json'
-                    });
-                    await vscode.window.showTextDocument(document);
-                }
-            } else {
-                vscode.window.showInformationMessage(`✅ Secret value copied to clipboard!\n\nValue: ${secretValue}`);
-            }
+            // Show simple notification - no "View Full Content" option
+            vscode.window.showInformationMessage(`✅ Secret value copied to clipboard!`);
         } catch (error) {
             this.handleError(error, 'copy operation');
             const errorMessage = error instanceof Error ? error.message : String(error);

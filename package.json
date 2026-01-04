@@ -2,7 +2,7 @@
   "name": "akeyless-secrets-manager",
   "displayName": "Akeyless Secrets Manager",
   "description": "Find and fix hardcoded secrets in your code by integrating directly with Akeyless. Now with auto-scan on save!",
-  "version": "1.5.13",
+  "version": "1.5.17",
   "publisher": "Akeyless",
   "license": "MIT",
   "repository": {
@@ -129,24 +129,8 @@
         "title": "Akeyless: Clear Secret Highlights"
       },
       {
-        "command": "akeyless.manualScanOnSave",
-        "title": "Akeyless: Manual Scan Current File"
-      },
-      {
-        "command": "akeyless.generateSecretName",
-        "title": "Akeyless: Generate Secret Name"
-      },
-      {
-        "command": "akeyless.fixInChat",
-        "title": "Akeyless: Fix in Chat"
-      },
-      {
-        "command": "akeyless.injectCode",
-        "title": "Akeyless: Inject Code"
-      },
-      {
-        "command": "akeyless.quickReplace",
-        "title": "Akeyless: Quick Replace"
+        "command": "akeyless.focusView",
+        "title": "Akeyless Secrets: Focus on Akeyless Security View"
       }
     ],
     "codeActions": [
