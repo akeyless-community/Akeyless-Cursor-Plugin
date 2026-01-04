@@ -3,7 +3,6 @@ import { ServiceContainer, SERVICE_KEYS } from '../container/ServiceContainer';
 import { IAkeylessRepository } from '../interfaces/IAkeylessRepository';
 import { ISecretScanner } from '../interfaces/ISecretScanner';
 import { IConfigurationService } from '../interfaces/IConfigurationService';
-import { AkeylessRepository } from '../../infrastructure/repositories/AkeylessRepository';
 import { ConfigurationService } from '../../infrastructure/services/ConfigurationService';
 import { SecretScannerAdapter } from '../../infrastructure/scanners/SecretScannerAdapter';
 import { AkeylessCLIAdapter } from '../../infrastructure/adapters/AkeylessCLIAdapter';
@@ -76,7 +75,6 @@ export class ServiceFactory {
         this.container.register<SecretsTreeProvider>(
             SERVICE_KEYS.SECRETS_TREE_PROVIDER,
             () => {
-                const repository = this.container.resolve<IAkeylessRepository>(SERVICE_KEYS.AKEYLESS_REPOSITORY);
                 // For now, use adapter - later can use repository directly
                 const oldCLI = new AkeylessCLI();
                 return new SecretsTreeProvider(oldCLI);

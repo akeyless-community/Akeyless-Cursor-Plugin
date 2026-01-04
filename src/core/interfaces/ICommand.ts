@@ -1,5 +1,3 @@
-import * as vscode from 'vscode';
-
 /**
  * Command interface following Command Pattern
  * Encapsulates a request as an object

@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { BaseCommand } from './base/BaseCommand';
 import { SecretsTreeProvider } from '../../providers/secrets-tree-provider';
 import { MESSAGES } from '../../constants';
-import { logger } from '../../utils/logger';
 
 /**
  * Search Command

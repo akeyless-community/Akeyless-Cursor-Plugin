@@ -26,7 +26,39 @@ export class AkeylessCLIAdapter implements IAkeylessRepository {
     async getSecretValue(path: string): Promise<string> {
         try {
             const result = await this.akeylessCLI.getSecretValue(path);
-            return result.value || result.toString() || '';
+            
+            // Handle different response formats from Akeyless CLI
+            if (typeof result === 'string') {
+                return result;
+            }
+            
+            if (result && typeof result === 'object') {
+                // Try common property names for the secret value
+                if (result.value !== undefined) {
+                    // If value is a string, return it; if it's an object, stringify it
+                    return typeof result.value === 'string' ? result.value : JSON.stringify(result.value);
+                }
+                
+                // If the object itself is the value (single property), extract it
+                const keys = Object.keys(result);
+                if (keys.length === 1 && keys[0] === 'value') {
+                    const value = result.value;
+                    return typeof value === 'string' ? value : JSON.stringify(value);
+                }
+                
+                // If it's a simple object with string values, try to extract the first meaningful value
+                for (const key of ['value', 'secret', 'data', 'content']) {
+                    if (result[key] !== undefined) {
+                        const value = result[key];
+                        return typeof value === 'string' ? value : JSON.stringify(value);
+                    }
+                }
+                
+                // Last resort: stringify the entire object
+                return JSON.stringify(result);
+            }
+            
+            return String(result || '');
         } catch (error) {
             throw new RepositoryError(
                 `Failed to get secret value: ${error instanceof Error ? error.message : String(error)}`
@@ -34,7 +66,7 @@ export class AkeylessCLIAdapter implements IAkeylessRepository {
         }
     }
 
-    async createSecret(path: string, value: string, itemType: string = 'STATIC_SECRET'): Promise<void> {
+    async createSecret(path: string, value: string, _itemType: string = 'STATIC_SECRET'): Promise<void> {
         try {
             await this.akeylessCLI.createStaticSecret(path, value);
         } catch (error) {
@@ -50,7 +82,7 @@ export class AkeylessCLIAdapter implements IAkeylessRepository {
         await this.createSecret(path, value);
     }
 
-    async deleteSecret(path: string): Promise<void> {
+    async deleteSecret(_path: string): Promise<void> {
         throw new RepositoryError('Delete operation not implemented in AkeylessCLI adapter');
     }
 

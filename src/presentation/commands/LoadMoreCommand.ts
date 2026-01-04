@@ -1,6 +1,5 @@
 import { BaseCommand } from './base/BaseCommand';
 import { SecretsTreeProvider } from '../../providers/secrets-tree-provider';
-import { logger } from '../../utils/logger';
 
 /**
  * Load More Command

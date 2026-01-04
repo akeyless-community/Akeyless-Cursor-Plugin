@@ -175,7 +175,21 @@ export class AkeylessCLI {
             }
             
             // Use CLI directly to get secret value
-            const { stdout } = await execAsync(`${akeylessPath} get-secret-value --name "${secretName}" --json`);
+            // Try --path first (more common), fallback to --name
+            let stdout: string;
+            try {
+                const result = await execAsync(`${akeylessPath} get-secret-value --path "${secretName}" --json`);
+                stdout = result.stdout;
+            } catch (pathError) {
+                // Fallback to --name if --path fails
+                try {
+                    const result = await execAsync(`${akeylessPath} get-secret-value --name "${secretName}" --json`);
+                    stdout = result.stdout;
+                } catch (nameError) {
+                    throw pathError; // Throw original error
+                }
+            }
+            
             const data = JSON.parse(stdout);
             
             logger.info(`✅ Secret value retrieved successfully`);

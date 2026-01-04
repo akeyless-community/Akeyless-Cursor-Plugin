@@ -26,7 +26,6 @@ export abstract class BaseCommand implements ICommand {
      * Handles errors consistently
      */
     protected handleError(error: unknown, context: string): void {
-        const errorMessage = error instanceof Error ? error.message : String(error);
         logger.error(`❌ Error in ${this.getId()}: ${context}`, error);
     }
 

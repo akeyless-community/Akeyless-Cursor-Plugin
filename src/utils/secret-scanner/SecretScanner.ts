@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { HardcodedSecret, ScannerConfig, DetectedRange } from './types';
+import { HardcodedSecret, ScannerConfig } from './types';
 import { PatternRegistry } from './PatternRegistry';
 import { ScannerConfigManager } from './utils/ScannerConfig';
 import { logger } from '../logger';
@@ -38,7 +38,6 @@ export class SecretScanner {
         }
         
         let fullText: string;
-        let lowerText: string;
         let lines: string[];
         
         try {
@@ -62,24 +61,6 @@ export class SecretScanner {
                 }
                 throw splitError;
             }
-            
-            // Only create lowercase version if file is reasonably sized
-            // For very large files, we'll process line by line without full lowercase copy
-            if (fullText.length < 10 * 1024 * 1024) { // < 10MB, safe to create lowercase copy
-                try {
-                    lowerText = fullText.toLowerCase();
-                } catch (lowerError) {
-                    if (lowerError instanceof RangeError && lowerError.message.includes('Invalid string length')) {
-                        logger.warn(`Skipping file ${document.fileName} - file too large to create lowercase copy`);
-                        lowerText = ''; // Process without lowercase copy
-                    } else {
-                        throw lowerError;
-                    }
-                }
-            } else {
-                // For larger files, we'll create lowercase on-demand per line
-                lowerText = '';
-            }
         } catch (error) {
             if (error instanceof RangeError && (error.message.includes('Invalid string length') || error.message.includes('Maximum call stack'))) {
                 logger.warn(`Skipping file ${document.fileName} - file too large to process: ${error.message}`);
@@ -88,66 +69,45 @@ export class SecretScanner {
             throw error;
         }
         
-        // Early exit: Skip if this is a scan report or RTF document
-        // Only check if we have lowercase text, otherwise check line by line
-        if (lowerText) {
-            if (this.isScanReportDocument(fullText, lowerText, document.fileName)) {
-                logger.debug(`Skipping scan report/document: ${document.fileName}`);
-                return [];
-            }
-        } else {
-            // For large files, do a quick check on first few lines
-            const firstLines = lines.slice(0, 10).join('\n').toLowerCase();
-            if (this.isScanReportDocument(fullText.substring(0, 1000), firstLines, document.fileName)) {
-                logger.debug(`Skipping scan report/document: ${document.fileName}`);
-                return [];
-            }
-        }
-        const detectedRanges: DetectedRange[] = [];
+        // Get ALL patterns to ensure comprehensive detection of all suspected secrets
+        const allPatterns = this.patternRegistry.getAll();
+        logger.debug(`Scanning with ${allPatterns.length} secret detection patterns`);
 
-        const sortedPatterns = this.patternRegistry.getSortedByConfidence();
+        // Separate patterns that need full-text matching (multiline/dotAll) from single-line patterns
+        // Patterns with 's' (dotAll) flag can match across newlines, so they need full text
+        // Patterns with 'm' (multiline) can also benefit from full-text matching for accuracy
+        const multilinePatterns = allPatterns.filter(p => p.pattern.flags.includes('s') || p.pattern.flags.includes('m'));
+        const singleLinePatterns = allPatterns.filter(p => !p.pattern.flags.includes('s') && !p.pattern.flags.includes('m'));
 
-        for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-            const line = lines[lineIndex];
-            const lineNumber = lineIndex + 1;
-
-            for (const pattern of sortedPatterns) {
+        // First, scan full text for multiline patterns
+        for (const pattern of multilinePatterns) {
+            try {
+                // Ensure global flag is set for multiline patterns
+                let flags = pattern.pattern.flags;
+                if (!flags.includes('g')) {
+                    flags += 'g';
+                }
+                const regex = new RegExp(pattern.pattern.source, flags);
                 let match;
-                const regex = new RegExp(pattern.pattern.source, pattern.pattern.flags);
+                let lastIndex = 0;
+                const maxIterations = 10000; // Safety limit to prevent infinite loops
+                let iterations = 0;
 
-                while ((match = regex.exec(line)) !== null) {
-                    const value = match[1] || match[0]; // Use capture group if available, otherwise full match
-
-                    // Calculate the actual range of the value in the line
-                    let valueStart = match.index;
-                    let valueEnd = match.index + match[0].length;
-
-                    // If we have a capture group, adjust the range to the captured value
-                    if (match[1]) {
-                        valueStart = match.index + match[0].indexOf(match[1]);
-                        valueEnd = valueStart + match[1].length;
-                    }
-
-                    // Check if this range is fully contained within an existing high-confidence detected range
-                    const isContainedInHighConfidence = detectedRanges.some(range =>
-                        range.confidence === 'high' &&
-                        valueStart >= range.start &&
-                        valueEnd <= range.end
-                    );
-
-                    if (isContainedInHighConfidence) {
-                        logger.debug(`Skipping ${pattern.name} "${value}" - contained within high-confidence range`);
-                        continue;
-                    }
-
-                    // Add this detection to our ranges
-                    detectedRanges.push({
-                        start: valueStart,
-                        end: valueEnd,
-                        confidence: pattern.confidence,
-                        type: pattern.name
-                    });
-
+                while ((match = regex.exec(fullText)) !== null && iterations < maxIterations) {
+                    iterations++;
+                    const value = match[1] || match[0];
+                    
+                    // Calculate line number from match position
+                    const textBeforeMatch = fullText.substring(0, match.index);
+                    const lineNumber = (textBeforeMatch.match(/\n/g) || []).length + 1;
+                    const lineStart = textBeforeMatch.lastIndexOf('\n') + 1;
+                    const nextNewline = fullText.indexOf('\n', match.index);
+                    const line = nextNewline !== -1 
+                        ? fullText.substring(lineStart, nextNewline)
+                        : fullText.substring(lineStart);
+                    
+                    // Calculate column position
+                    const valueStart = match.index - lineStart;
                     const column = valueStart + 1;
                     const context = line.trim();
 
@@ -159,6 +119,68 @@ export class SecretScanner {
                         type: pattern.suggestion,
                         context
                     });
+
+                    // Prevent infinite loop if regex doesn't advance
+                    if (regex.lastIndex === lastIndex) {
+                        regex.lastIndex++;
+                    }
+                    lastIndex = regex.lastIndex;
+                }
+            } catch (error) {
+                logger.warn(`Error applying multiline pattern ${pattern.name}: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        }
+
+        // Then, scan line by line for single-line patterns (more efficient)
+        for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+            const line = lines[lineIndex];
+            const lineNumber = lineIndex + 1;
+
+            for (const pattern of singleLinePatterns) {
+                try {
+                    // Ensure global flag is set for proper matching
+                    let flags = pattern.pattern.flags;
+                    if (!flags.includes('g')) {
+                        flags += 'g';
+                    }
+                    const regex = new RegExp(pattern.pattern.source, flags);
+                    let match;
+                    let lastIndex = 0;
+                    const maxIterations = 1000; // Safety limit per line
+                    let iterations = 0;
+
+                    while ((match = regex.exec(line)) !== null && iterations < maxIterations) {
+                        iterations++;
+                        const value = match[1] || match[0];
+
+                        // Calculate the actual range of the value in the line
+                        let valueStart = match.index;
+
+                        // If we have a capture group, adjust the range to the captured value
+                        if (match[1]) {
+                            valueStart = match.index + match[0].indexOf(match[1]);
+                        }
+
+                        const column = valueStart + 1;
+                        const context = line.trim();
+
+                        secrets.push({
+                            fileName: document.fileName,
+                            lineNumber,
+                            column,
+                            value,
+                            type: pattern.suggestion,
+                            context
+                        });
+
+                        // Prevent infinite loop if regex doesn't advance
+                        if (regex.lastIndex === lastIndex) {
+                            regex.lastIndex++;
+                        }
+                        lastIndex = regex.lastIndex;
+                    }
+                } catch (error) {
+                    logger.warn(`Error applying pattern ${pattern.name} on line ${lineNumber}: ${error instanceof Error ? error.message : String(error)}`);
                 }
             }
         }
@@ -260,45 +282,9 @@ export class SecretScanner {
             '**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/coverage/**,**/.nyc_output/**,**/vendor/**,**/out/**,**/target/**,**/bin/**,**/obj/**,**/.vscode-test/**,**/logs/**,**/temp/**,**/tmp/**,**/.venv/**,**/venv/**,**/site-packages/**,**/__pycache__/**,**/.pytest_cache/**,**/package-lock.json,**/yarn.lock,**/*.rtf,**/*.doc,**/*.docx,**/*.pdf,**/*.odt'
         );
 
-        const filteredFiles = files.filter(file => {
-            const filePath = file.fsPath.toLowerCase();
-            const shouldExclude = filePath.includes('node_modules') ||
-                filePath.includes('dist') ||
-                filePath.includes('build') ||
-                filePath.includes('.git') ||
-                filePath.includes('coverage') ||
-                filePath.includes('vendor') ||
-                filePath.includes('out') ||
-                filePath.includes('target') ||
-                filePath.includes('bin') ||
-                filePath.includes('obj') ||
-                filePath.includes('.vscode-test') ||
-                filePath.includes('logs') ||
-                filePath.includes('temp') ||
-                filePath.includes('tmp') ||
-                filePath.includes('.venv') ||
-                filePath.includes('venv/') ||
-                filePath.includes('site-packages') ||
-                filePath.includes('__pycache__') ||
-                filePath.includes('.pytest_cache') ||
-                filePath.endsWith('package-lock.json') ||
-                filePath.endsWith('yarn.lock') ||
-                filePath.endsWith('.rtf') ||
-                filePath.endsWith('.doc') ||
-                filePath.endsWith('.docx') ||
-                filePath.endsWith('.pdf') ||
-                filePath.endsWith('.odt');
+        logger.info(`Found ${files.length} files to scan`);
 
-            if (shouldExclude) {
-                logger.debug(`Excluding library file: ${vscode.workspace.asRelativePath(file.fsPath)}`);
-            }
-
-            return !shouldExclude;
-        });
-
-        logger.info(`Found ${files.length} total files, filtered to ${filteredFiles.length} project files to scan`);
-
-        for (const file of filteredFiles) {
+        for (const file of files) {
             try {
                 const document = await vscode.workspace.openTextDocument(file);
                 const secrets = await this.scanDocument(document);
@@ -319,7 +305,7 @@ export class SecretScanner {
         }
 
         logger.info(`Project scan complete: Found ${totalSecrets} potential secrets in ${results.size} files`);
-        return { results, totalFilesScanned: filteredFiles.length };
+        return { results, totalFilesScanned: files.length };
     }
 
     /**
@@ -406,56 +392,6 @@ export class SecretScanner {
 
     static generateSecretName(secret: HardcodedSecret, fileName: string): string {
         return SecretScanner.getDefaultInstance().generateSecretName(secret, fileName);
-    }
-
-    /**
-     * Checks if a document is a scan report or RTF/document file that should be skipped
-     */
-    private isScanReportDocument(fullText: string, lowerText: string, fileName: string): boolean {
-        const lowerFileName = fileName.toLowerCase();
-        
-        // Skip RTF and document files by extension
-        if (lowerFileName.endsWith('.rtf') ||
-            lowerFileName.endsWith('.doc') ||
-            lowerFileName.endsWith('.docx') ||
-            lowerFileName.endsWith('.pdf') ||
-            lowerFileName.endsWith('.odt')) {
-            return true;
-        }
-        
-        // Check for RTF format markers
-        if (fullText.includes('{\\rtf1') ||
-            fullText.includes('\\cocoartf') ||
-            fullText.includes('\\fonttbl') ||
-            fullText.includes('\\colortbl')) {
-            return true;
-        }
-        
-        // Check for scan report content indicators
-        if (lowerText.includes('hardcoded secrets scan results') ||
-            (lowerText.includes('scan results') && lowerText.includes('secrets found')) ||
-            (lowerText.includes('file:') && lowerText.includes('path:') && 
-             lowerText.includes('location: line') && lowerText.includes('value:'))) {
-            // Additional check: if it has multiple "FILE:" entries, it's definitely a report
-            const fileMatches = (lowerText.match(/file:/gi) || []).length;
-            if (fileMatches >= 2) {
-                return true;
-            }
-        }
-        
-        // Check for scan report structure (even with fewer FILE: entries)
-        // Pattern: FILE: ... Path: ... Location: Line ... Value: ... Context: ...
-        const hasReportStructure = lowerText.includes('file:') &&
-            lowerText.includes('path:') &&
-            (lowerText.includes('location:') || lowerText.includes('location: line')) &&
-            lowerText.includes('value:') &&
-            (lowerText.includes('context:') || lowerText.includes('scan completed'));
-        
-        if (hasReportStructure) {
-            return true;
-        }
-        
-        return false;
     }
 }
 

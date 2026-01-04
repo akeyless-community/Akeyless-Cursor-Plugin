@@ -3,7 +3,6 @@ import { BaseCommand } from './base/BaseCommand';
 import { SaveSecretUseCase } from '../../application/use-cases/SaveSecretUseCase';
 import { SecretsTreeProvider } from '../../providers/secrets-tree-provider';
 import { ValidationError } from '../../core/errors';
-import { logger } from '../../utils/logger';
 
 /**
  * Save to Akeyless Command

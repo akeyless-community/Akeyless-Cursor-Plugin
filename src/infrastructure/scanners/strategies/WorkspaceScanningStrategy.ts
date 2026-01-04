@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import { IScanningStrategy } from './IScanningStrategy';
 import { ISecretScanner } from '../../../core/interfaces/ISecretScanner';
 import { HardcodedSecret } from '../../../utils/secret-scanner/types';

@@ -22,7 +22,7 @@ export class ScanForSecretsUseCase {
             
             // Convert to domain entities
             const secrets: HardcodedSecret[] = [];
-            for (const [fileName, fileSecrets] of result.results.entries()) {
+            for (const [_fileName, fileSecrets] of result.results.entries()) {
                 for (const secret of fileSecrets) {
                     secrets.push(this.convertToDomainEntity(secret));
                 }
@@ -45,7 +45,7 @@ export class ScanForSecretsUseCase {
             const result = await this.scanner.scanCurrentFile();
             
             const secrets: HardcodedSecret[] = [];
-            for (const [fileName, fileSecrets] of result.results.entries()) {
+            for (const [_fileName, fileSecrets] of result.results.entries()) {
                 for (const secret of fileSecrets) {
                     secrets.push(this.convertToDomainEntity(secret));
                 }

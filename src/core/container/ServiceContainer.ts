@@ -1,5 +1,3 @@
-import * as vscode from 'vscode';
-
 /**
  * Dependency Injection Container
  * Implements Service Locator pattern with proper dependency management
