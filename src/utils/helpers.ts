@@ -90,13 +90,13 @@ export function isValidAccessKey(accessKey: string): boolean {
  * @param wait - The wait time in milliseconds
  * @returns Debounced function
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (..._args: any[]) => any>(
     func: T,
     wait: number
-): (...args: Parameters<T>) => void {
-    let timeout: NodeJS.Timeout;
-    return (...args: Parameters<T>) => {
+): (..._args: Parameters<T>) => void {
+    let timeout: ReturnType<typeof setTimeout>;
+    return (..._args: Parameters<T>) => {
         clearTimeout(timeout);
-        timeout = setTimeout(() => func(...args), wait);
+        timeout = setTimeout(() => func(..._args), wait);
     };
 } 

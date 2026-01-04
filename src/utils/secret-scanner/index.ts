@@ -13,8 +13,6 @@ export { SecretScanner } from './SecretScanner';
 export { EntropyCalculator } from './utils/EntropyCalculator';
 export { ScannerConfigManager } from './utils/ScannerConfig';
 
-// Export filters
-export { FalsePositiveFilter } from './filters/FalsePositiveFilter';
 
 // Export pattern registry
 export { PatternRegistry } from './PatternRegistry';

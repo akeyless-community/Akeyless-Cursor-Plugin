@@ -182,7 +182,23 @@ export class CommandManager {
             const scanResult = await SecretScanner.scanCurrentProject();
             const workspaceResults = scanResult.results;
             const totalFilesScanned = scanResult.totalFilesScanned;
-            const secrets = Array.from(workspaceResults.values()).flat();
+            
+            // Safely flatten results - this can fail with very large arrays
+            let secrets: HardcodedSecret[];
+            try {
+                secrets = Array.from(workspaceResults.values()).flat();
+            } catch (error) {
+                if (error instanceof RangeError && error.message.includes('Invalid string length')) {
+                    logger.warn('Too many secrets found - flattening results in chunks');
+                    // Flatten in chunks to avoid memory issues
+                    secrets = [];
+                    for (const fileSecrets of workspaceResults.values()) {
+                        secrets.push(...fileSecrets);
+                    }
+                } else {
+                    throw error;
+                }
+            }
             
             if (secrets.length === 0) {
                 // Clear any existing diagnostics if no secrets found
@@ -205,8 +221,22 @@ export class CommandManager {
             vscode.window.showInformationMessage(`Found ${secrets.length} secrets. Previous scan results have been cleared.`);
             
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
             logger.error('Failed to scan for hardcoded secrets:', error);
-            vscode.window.showErrorMessage(`Failed to scan for hardcoded secrets: ${error}`);
+            
+            // Provide more helpful error message
+            if (error instanceof RangeError && errorMessage.includes('Invalid string length')) {
+                vscode.window.showErrorMessage(
+                    'Scan failed: One or more files are too large to process. Large files (>50MB) are automatically skipped. Check the output log for details.',
+                    'View Log'
+                ).then(selection => {
+                    if (selection === 'View Log') {
+                        logger.showOutput();
+                    }
+                });
+            } else {
+                vscode.window.showErrorMessage(`Failed to scan for hardcoded secrets: ${errorMessage}`);
+            }
         }
     }
 
@@ -259,7 +289,11 @@ export class CommandManager {
                     }
                     
                 } catch (error) {
-                    logger.error(`❌ Error scanning ${document.fileName}:`, error);
+                    if (error instanceof RangeError && error.message.includes('Invalid string length')) {
+                        logger.warn(`⚠️ Skipping file ${document.fileName} - file too large to scan`);
+                    } else {
+                        logger.error(`❌ Error scanning ${document.fileName}:`, error);
+                    }
                 }
             }
         });

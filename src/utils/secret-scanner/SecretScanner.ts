@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { HardcodedSecret, ScannerConfig, DetectedRange } from './types';
 import { PatternRegistry } from './PatternRegistry';
-import { FalsePositiveFilter } from './filters/FalsePositiveFilter';
 import { ScannerConfigManager } from './utils/ScannerConfig';
 import { logger } from '../logger';
 
@@ -11,17 +10,14 @@ import { logger } from '../logger';
  */
 export class SecretScanner {
     private readonly patternRegistry: PatternRegistry;
-    private readonly falsePositiveFilter: FalsePositiveFilter;
     private configManager: ScannerConfigManager;
 
     constructor(
         patternRegistry?: PatternRegistry,
-        falsePositiveFilter?: FalsePositiveFilter,
         configManager?: ScannerConfigManager
     ) {
         this.configManager = configManager || ScannerConfigManager.default();
         this.patternRegistry = patternRegistry || new PatternRegistry();
-        this.falsePositiveFilter = falsePositiveFilter || new FalsePositiveFilter(this.configManager.get());
     }
 
     /**
@@ -29,16 +25,84 @@ export class SecretScanner {
      */
     async scanDocument(document: vscode.TextDocument): Promise<HardcodedSecret[]> {
         const secrets: HardcodedSecret[] = [];
-        const fullText = document.getText();
-        const lowerText = fullText.toLowerCase();
         
-        // Early exit: Skip if this is a scan report or RTF document
-        if (this.isScanReportDocument(fullText, lowerText, document.fileName)) {
-            logger.debug(`Skipping scan report/document: ${document.fileName}`);
+        // Check file size using line count as a proxy (avoids loading full text)
+        // JavaScript max string length is approximately 2^30 - 24 characters (~1GB)
+        // We'll set a more reasonable limit to avoid memory issues
+        // Estimate: average line length ~100 chars, so 500k lines ≈ 50MB
+        const MAX_LINES = 500000; // ~50MB estimated
+        
+        if (document.lineCount > MAX_LINES) {
+            logger.warn(`Skipping file ${document.fileName} - file too large (${document.lineCount} lines). Maximum: ${MAX_LINES} lines`);
             return [];
         }
         
-        const lines = fullText.split('\n');
+        let fullText: string;
+        let lowerText: string;
+        let lines: string[];
+        
+        try {
+            // Try to get text - this can throw RangeError for very large files
+            fullText = document.getText();
+            
+            // Check actual size after loading
+            const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+            if (fullText.length > MAX_FILE_SIZE) {
+                logger.warn(`Skipping file ${document.fileName} - file too large (${(fullText.length / 1024 / 1024).toFixed(2)}MB). Maximum size: ${MAX_FILE_SIZE / 1024 / 1024}MB`);
+                return [];
+            }
+            
+            // Try to split into lines - this can also throw RangeError
+            try {
+                lines = fullText.split('\n');
+            } catch (splitError) {
+                if (splitError instanceof RangeError && splitError.message.includes('Invalid string length')) {
+                    logger.warn(`Skipping file ${document.fileName} - file too large to split into lines`);
+                    return [];
+                }
+                throw splitError;
+            }
+            
+            // Only create lowercase version if file is reasonably sized
+            // For very large files, we'll process line by line without full lowercase copy
+            if (fullText.length < 10 * 1024 * 1024) { // < 10MB, safe to create lowercase copy
+                try {
+                    lowerText = fullText.toLowerCase();
+                } catch (lowerError) {
+                    if (lowerError instanceof RangeError && lowerError.message.includes('Invalid string length')) {
+                        logger.warn(`Skipping file ${document.fileName} - file too large to create lowercase copy`);
+                        lowerText = ''; // Process without lowercase copy
+                    } else {
+                        throw lowerError;
+                    }
+                }
+            } else {
+                // For larger files, we'll create lowercase on-demand per line
+                lowerText = '';
+            }
+        } catch (error) {
+            if (error instanceof RangeError && (error.message.includes('Invalid string length') || error.message.includes('Maximum call stack'))) {
+                logger.warn(`Skipping file ${document.fileName} - file too large to process: ${error.message}`);
+                return [];
+            }
+            throw error;
+        }
+        
+        // Early exit: Skip if this is a scan report or RTF document
+        // Only check if we have lowercase text, otherwise check line by line
+        if (lowerText) {
+            if (this.isScanReportDocument(fullText, lowerText, document.fileName)) {
+                logger.debug(`Skipping scan report/document: ${document.fileName}`);
+                return [];
+            }
+        } else {
+            // For large files, do a quick check on first few lines
+            const firstLines = lines.slice(0, 10).join('\n').toLowerCase();
+            if (this.isScanReportDocument(fullText.substring(0, 1000), firstLines, document.fileName)) {
+                logger.debug(`Skipping scan report/document: ${document.fileName}`);
+                return [];
+            }
+        }
         const detectedRanges: DetectedRange[] = [];
 
         const sortedPatterns = this.patternRegistry.getSortedByConfidence();
@@ -62,11 +126,6 @@ export class SecretScanner {
                     if (match[1]) {
                         valueStart = match.index + match[0].indexOf(match[1]);
                         valueEnd = valueStart + match[1].length;
-                    }
-
-                    // Skip if it's a false positive
-                    if (this.falsePositiveFilter.isFalsePositive(value, line, pattern, document.fileName)) {
-                        continue;
                     }
 
                     // Check if this range is fully contained within an existing high-confidence detected range
@@ -134,7 +193,12 @@ export class SecretScanner {
                     logger.debug(`Found ${secrets.length} secrets in ${vscode.workspace.asRelativePath(file.fsPath)}`);
                 }
             } catch (error) {
-                logger.error(`❌ Error scanning file ${file.fsPath}:`, error);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                if (error instanceof RangeError && (errorMessage.includes('Invalid string length') || errorMessage.includes('Maximum call stack'))) {
+                    logger.warn(`⚠️ Skipping file ${vscode.workspace.asRelativePath(file.fsPath)} - file too large to process (${errorMessage})`);
+                } else {
+                    logger.error(`❌ Error scanning file ${vscode.workspace.asRelativePath(file.fsPath)}:`, error);
+                }
             }
         }
 
@@ -165,7 +229,12 @@ export class SecretScanner {
                 logger.info('No secrets found in current file');
             }
         } catch (error) {
-            logger.error(`❌ Error scanning current file:`, error);
+            if (error instanceof RangeError && error.message.includes('Invalid string length')) {
+                logger.warn(`⚠️ File ${activeEditor.document.fileName} is too large to scan`);
+                vscode.window.showWarningMessage(`File is too large to scan for secrets (maximum size: 50MB)`);
+            } else {
+                logger.error(`❌ Error scanning current file:`, error);
+            }
         }
 
         return { results, totalFilesScanned: 1 };
@@ -240,7 +309,12 @@ export class SecretScanner {
                     logger.debug(`Found ${secrets.length} secrets in ${vscode.workspace.asRelativePath(file.fsPath)}`);
                 }
             } catch (error) {
-                logger.error(`❌ Error scanning file ${file.fsPath}:`, error);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                if (error instanceof RangeError && (errorMessage.includes('Invalid string length') || errorMessage.includes('Maximum call stack'))) {
+                    logger.warn(`⚠️ Skipping file ${vscode.workspace.asRelativePath(file.fsPath)} - file too large to process (${errorMessage})`);
+                } else {
+                    logger.error(`❌ Error scanning file ${vscode.workspace.asRelativePath(file.fsPath)}:`, error);
+                }
             }
         }
 
@@ -255,8 +329,6 @@ export class SecretScanner {
         developmentMode?: boolean;
         minEntropy?: number;
         skipDevelopmentValues?: boolean;
-        mlEnabled?: boolean;
-        mlConfidenceThreshold?: number;
     }): void {
         const updates: Partial<ScannerConfig> = {};
 
@@ -269,29 +341,10 @@ export class SecretScanner {
         if (options.skipDevelopmentValues !== undefined) {
             updates.skipDevelopmentValues = options.skipDevelopmentValues;
         }
-        if (options.mlEnabled !== undefined) {
-            updates.mlEnabled = options.mlEnabled;
-        }
-        if (options.mlConfidenceThreshold !== undefined) {
-            updates.mlConfidenceThreshold = options.mlConfidenceThreshold;
-        }
 
         this.configManager = this.configManager.with(updates);
-        // Recreate filter with new config
-        (this as any).falsePositiveFilter = new FalsePositiveFilter(this.configManager.get());
 
         logger.info('Scanner configuration updated:', this.configManager.get());
-    }
-    
-    /**
-     * Loads configuration from VS Code settings
-     */
-    static loadFromVSCodeSettings(): Partial<ScannerConfig> {
-        const config = vscode.workspace.getConfiguration('akeyless');
-        return {
-            mlEnabled: config.get<boolean>('ml.enabled', true),
-            mlConfidenceThreshold: config.get<number>('ml.confidenceThreshold', 0.7)
-        };
     }
 
     /**
@@ -322,13 +375,7 @@ export class SecretScanner {
 
     private static getDefaultInstance(): SecretScanner {
         if (!SecretScanner.defaultInstance) {
-            const instance = new SecretScanner();
-            // Load ML settings from VS Code configuration
-            const mlConfig = SecretScanner.loadFromVSCodeSettings();
-            if (mlConfig.mlEnabled !== undefined || mlConfig.mlConfidenceThreshold !== undefined) {
-                instance.configure(mlConfig);
-            }
-            SecretScanner.defaultInstance = instance;
+            SecretScanner.defaultInstance = new SecretScanner();
         }
         return SecretScanner.defaultInstance;
     }
