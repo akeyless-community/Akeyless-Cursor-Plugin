@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { BaseCommand } from './base/BaseCommand';
-import { VIEWS } from '../../constants';
 
 /**
  * Focus View Command

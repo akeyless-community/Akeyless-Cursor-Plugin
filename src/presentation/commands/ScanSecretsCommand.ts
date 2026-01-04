@@ -4,7 +4,6 @@ import { ScanForSecretsUseCase } from '../../application/use-cases/ScanForSecret
 import { DiagnosticsManager } from '../managers/DiagnosticsManager';
 import { HighlightingManager } from '../managers/HighlightingManager';
 import { ScanResultsOutputManager } from '../managers/ScanResultsOutputManager';
-import { ScanResult } from '../../domain/entities/ScanResult';
 import { logger } from '../../utils/logger';
 
 /**
