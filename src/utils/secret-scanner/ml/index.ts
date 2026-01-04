@@ -6,7 +6,9 @@
  * locally without requiring external dependencies or cloud services.
  * 
  * Features:
- * - Extracts 19 features from detected secrets and their context
+ * - Pre-trained model with optimized weights (works out-of-the-box, no training needed)
+ * - Pre-trained pattern matching for fast false positive detection
+ * - Extracts 33 features from detected secrets and their context
  * - Uses a simple neural network-like classifier (weighted sum + sigmoid)
  * - Can learn from user feedback to improve over time
  * - Runs entirely locally - no data leaves the user's machine
@@ -18,4 +20,13 @@
 
 export { FeatureExtractor, SecretFeatures } from './FeatureExtractor';
 export { MLFalsePositiveClassifier } from './MLFalsePositiveClassifier';
+export {
+    getPreTrainedModel,
+    validateModel,
+    matchesFalsePositivePattern,
+    matchesRealSecretPattern,
+    PRETRAINED_WEIGHTS,
+    PRETRAINED_BIAS,
+    type PreTrainedModelConfig
+} from './PreTrainedModel';
 

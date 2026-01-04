@@ -471,6 +471,19 @@ export class FeatureExtractor {
             }
         }
         
+        // Check for storage key assignments: STORAGE_KEY = 'akeyless_...' or readonly STORAGE_KEY = '...'
+        if (/^[a-z][a-z0-9_]+$/.test(trimmedValue) && trimmedValue.length > 5 && trimmedValue.length < 50) {
+            // Pattern: STORAGE_KEY = 'akeyless_view_mode' or readonly STORAGE_KEY = '...'
+            if (/storage_key\s*[:=]\s*['"]/.test(lowerLine) ||
+                /readonly\s+[a-z_]+\s*=\s*['"]/.test(lowerLine) ||
+                /static\s+readonly\s+[a-z_]+\s*=\s*['"]/.test(lowerLine)) {
+                // Check if the value matches storage key patterns
+                if (/^(akeyless|secrets_manager|user_)[a-z_]+$/.test(trimmedValue)) {
+                    return true;
+                }
+            }
+        }
+        
         // Kebab-case: path-to-dynamic-secr, path-to-secret
         if (/^[a-z][a-z0-9-]+$/.test(trimmedValue) && trimmedValue.length > 3 && trimmedValue.length < 50) {
             if (new RegExp(`\\b${trimmedValue.replace(/-/g, '[-_]')}\\b`).test(lowerLine) ||
@@ -576,6 +589,19 @@ export class FeatureExtractor {
     private static checkFunctionCall(value: string, line: string): boolean {
         const lowerLine = line.toLowerCase();
         const trimmedValue = value.trim();
+        
+        // Check for code fragments in logger/log statements
+        // Pattern: logger.log('text:', value, 'more text')
+        if (/logger\.(log|debug|info|warn|error)\(/.test(lowerLine) ||
+            /console\.(log|debug|info|warn|error)\(/.test(lowerLine) ||
+            /\.log\(/.test(lowerLine)) {
+            // Check if value is a code fragment (starts with operators, parentheses, etc.)
+            if (/^(typeof|instanceof|\(|,|\.|\?\.|===?|!==?)/.test(trimmedValue) ||
+                /^[a-zA-Z_][a-zA-Z0-9_]*\?\.(value|scores|password|data)$/.test(trimmedValue) ||
+                /^\{[a-z_]+\}$/.test(trimmedValue)) {
+                return true;
+            }
+        }
         
         // ===== TYPE CONVERSIONS & CASTS (All Languages) =====
         // Go: string(variable), []byte(data), int(value), p.(string) - type assertions
@@ -702,6 +728,16 @@ export class FeatureExtractor {
             /[A-Z][a-zA-Z0-9_]*:\s*[a-zA-Z_][a-zA-Z0-9_]*[,}]/,
             /[a-z_][a-zA-Z0-9_]*:\s*[a-zA-Z_][a-zA-Z0-9_]*[,}]/,
         ];
+        
+        // Check for TypeScript 'property' as keyof Type pattern
+        // Pattern: toggleKey: 'min_length' as keyof PasswordPolicy
+        if (/:\s*'[a-z_]+'\s*as\s+keyof/i.test(line)) {
+            const trimmedValue = value.trim().replace(/^["']|["']$/g, '');
+            if (/^[a-z_]+$/.test(trimmedValue) && trimmedValue.length < 30) {
+                return true;
+            }
+        }
+        
         return fieldPatterns.some(pattern => pattern.test(line)) &&
                /^[a-zA-Z_][a-zA-Z0-9_]*[,}]?\s*$/.test(value.trim());
     }
