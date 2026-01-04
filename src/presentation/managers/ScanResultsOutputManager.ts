@@ -52,6 +52,7 @@ export class ScanResultsOutputManager {
                     this.outputChannel.appendLine('');
                     this.outputChannel.appendLine(`   Secret ${index + 1}:`);
                     this.outputChannel.appendLine(`   ┌─ Type: ${secret.type}`);
+                    this.outputChannel.appendLine(`   ├─ File: ${relativePath}`);
                     this.outputChannel.appendLine(`   ├─ Location: Line ${secret.lineNumber}, Column ${secret.column}`);
                     
                     // Show truncated value
