@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { HardcodedSecret } from '../../domain/entities/HardcodedSecret';
 import { logger } from '../../utils/logger';
+import { generateAkeylessDiagnosticMessage } from '../../utils/akeyless-suggestions';
 
 // Import the old type for compatibility
 import { HardcodedSecret as OldHardcodedSecret } from '../../utils/secret-scanner/types';
@@ -53,10 +54,15 @@ export class DiagnosticsManager {
                         secret.column - 1 + secret.value.length
                     );
 
-                    const secretType = secret.type;
+                    // Generate Akeyless-specific diagnostic message with implementation guidance
+                    const suggestion = generateAkeylessDiagnosticMessage(secret.type, secret.fileName);
+                    
+                    // Create a comprehensive message with implementation guidance
+                    const fullMessage = `${suggestion.message}\n\nImplementation:\n${suggestion.implementation}\n\nDocs: ${suggestion.documentation}`;
+                    
                     const diagnostic = new vscode.Diagnostic(
                         range,
-                        `Hardcoded secret detected: ${secretType}`,
+                        fullMessage,
                         vscode.DiagnosticSeverity.Warning
                     );
 
