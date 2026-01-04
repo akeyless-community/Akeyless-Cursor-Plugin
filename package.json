@@ -2,7 +2,7 @@
   "name": "akeyless-secrets-manager",
   "displayName": "Akeyless Secrets Manager",
   "description": "Find and fix hardcoded secrets in your code by integrating directly with Akeyless. Now with auto-scan on save!",
-  "version": "1.5.8",
+  "version": "1.5.13",
   "publisher": "Akeyless",
   "license": "MIT",
   "repository": {

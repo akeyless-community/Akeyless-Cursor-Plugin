@@ -35,27 +35,34 @@ export class AkeylessCLIAdapter implements IAkeylessRepository {
             if (result && typeof result === 'object') {
                 // Try common property names for the secret value
                 if (result.value !== undefined) {
-                    // If value is a string, return it; if it's an object, stringify it
-                    return typeof result.value === 'string' ? result.value : JSON.stringify(result.value);
-                }
-                
-                // If the object itself is the value (single property), extract it
-                const keys = Object.keys(result);
-                if (keys.length === 1 && keys[0] === 'value') {
-                    const value = result.value;
-                    return typeof value === 'string' ? value : JSON.stringify(value);
+                    // If value is a string, return it directly
+                    if (typeof result.value === 'string') {
+                        return result.value;
+                    }
+                    // If value is an object, stringify it properly with formatting
+                    if (typeof result.value === 'object') {
+                        return JSON.stringify(result.value, null, 2);
+                    }
+                    // For other types, convert to string
+                    return String(result.value);
                 }
                 
                 // If it's a simple object with string values, try to extract the first meaningful value
-                for (const key of ['value', 'secret', 'data', 'content']) {
+                for (const key of ['secret', 'data', 'content']) {
                     if (result[key] !== undefined) {
                         const value = result[key];
-                        return typeof value === 'string' ? value : JSON.stringify(value);
+                        if (typeof value === 'string') {
+                            return value;
+                        }
+                        if (typeof value === 'object') {
+                            return JSON.stringify(value, null, 2);
+                        }
+                        return String(value);
                     }
                 }
                 
-                // Last resort: stringify the entire object
-                return JSON.stringify(result);
+                // Last resort: stringify the entire object with formatting
+                return JSON.stringify(result, null, 2);
             }
             
             return String(result || '');

@@ -57,7 +57,12 @@ export class CopySecretValueCommand extends BaseCommand {
                             ? (typeof response.value === 'string' ? response.value : JSON.stringify(response.value, null, 2))
                             : JSON.stringify(response, null, 2);
                     } else {
-                        secretValue = String(response || '');
+                        // Handle other types - if it's an object, stringify it; otherwise convert to string
+                        if (response && typeof response === 'object') {
+                            secretValue = JSON.stringify(response, null, 2);
+                        } else {
+                            secretValue = String(response || '');
+                        }
                     }
                 } else {
                     secretValue = await this.repository.getSecretValue(secretName);
@@ -75,7 +80,12 @@ export class CopySecretValueCommand extends BaseCommand {
                             ? (typeof response.value === 'string' ? response.value : JSON.stringify(response.value, null, 2))
                             : JSON.stringify(response, null, 2);
                     } else {
-                        secretValue = String(response || '');
+                        // Handle other types - if it's an object, stringify it; otherwise convert to string
+                        if (response && typeof response === 'object') {
+                            secretValue = JSON.stringify(response, null, 2);
+                        } else {
+                            secretValue = String(response || '');
+                        }
                     }
                 } else {
                     secretValue = await this.repository.getSecretValue(secretName);
@@ -91,13 +101,14 @@ export class CopySecretValueCommand extends BaseCommand {
             
             await vscode.env.clipboard.writeText(secretValue);
             
-            const preview = secretValue.length > 200 
-                ? secretValue.substring(0, 200) + '...' 
+            // Show the value in the notification (truncate if too long for readability)
+            const displayValue = secretValue.length > 100 
+                ? secretValue.substring(0, 100) + '...' 
                 : secretValue;
             
             if (secretValue.length > 200) {
                 const action = await vscode.window.showInformationMessage(
-                    `✅ Secret value copied to clipboard!\n\nPreview:\n${preview}`,
+                    `✅ Secret value copied to clipboard!\n\nValue: ${displayValue}`,
                     'View Full Content'
                 );
                 
@@ -109,7 +120,7 @@ export class CopySecretValueCommand extends BaseCommand {
                     await vscode.window.showTextDocument(document);
                 }
             } else {
-                vscode.window.showInformationMessage(`✅ Secret value copied to clipboard!`);
+                vscode.window.showInformationMessage(`✅ Secret value copied to clipboard!\n\nValue: ${secretValue}`);
             }
         } catch (error) {
             this.handleError(error, 'copy operation');

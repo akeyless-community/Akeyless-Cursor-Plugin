@@ -73,7 +73,28 @@ export class AkeylessRepository implements IAkeylessRepository {
             
             try {
                 const response = JSON.parse(stdout);
-                return response.value || '';
+                // Handle different response formats
+                if (response.value !== undefined) {
+                    // If value is a string, return it directly
+                    if (typeof response.value === 'string') {
+                        return response.value;
+                    }
+                    // If value is an object, stringify it properly
+                    if (typeof response.value === 'object') {
+                        return JSON.stringify(response.value, null, 2);
+                    }
+                    // For other types, convert to string
+                    return String(response.value);
+                }
+                // If no value property, check if the response itself is the value
+                if (typeof response === 'string') {
+                    return response;
+                }
+                // If response is an object, stringify it
+                if (typeof response === 'object') {
+                    return JSON.stringify(response, null, 2);
+                }
+                return String(response || '');
             } catch (parseError) {
                 throw new RepositoryError('Failed to parse secret value response');
             }
