@@ -11,6 +11,7 @@ import { SecretsTreeProvider } from '../../providers/secrets-tree-provider';
 import { SecretManagementService } from '../../application/services/SecretManagementService';
 import { DiagnosticsManager } from '../../presentation/managers/DiagnosticsManager';
 import { HighlightingManager } from '../../presentation/managers/HighlightingManager';
+import { ScanResultsOutputManager } from '../../presentation/managers/ScanResultsOutputManager';
 import { AutoScanHandler } from '../../presentation/handlers/AutoScanHandler';
 import { logger } from '../../utils/logger';
 
@@ -107,6 +108,13 @@ export class ServiceFactory {
         this.container.register<HighlightingManager>(
             SERVICE_KEYS.HIGHLIGHTING_MANAGER,
             () => new HighlightingManager(),
+            true
+        );
+
+        // Register Scan Results Output Manager
+        this.container.register<ScanResultsOutputManager>(
+            SERVICE_KEYS.SCAN_RESULTS_OUTPUT_MANAGER,
+            () => new ScanResultsOutputManager(),
             true
         );
 

@@ -84,5 +84,6 @@ export const SERVICE_KEYS = {
     DIAGNOSTICS_MANAGER: 'diagnostics.manager',
     HIGHLIGHTING_MANAGER: 'highlighting.manager',
     AUTO_SCAN_HANDLER: 'auto.scan.handler',
+    SCAN_RESULTS_OUTPUT_MANAGER: 'scan.results.output.manager',
 } as const;
 

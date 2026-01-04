@@ -3,6 +3,7 @@ import { BaseCommand } from './base/BaseCommand';
 import { ScanForSecretsUseCase } from '../../application/use-cases/ScanForSecretsUseCase';
 import { DiagnosticsManager } from '../managers/DiagnosticsManager';
 import { HighlightingManager } from '../managers/HighlightingManager';
+import { ScanResultsOutputManager } from '../managers/ScanResultsOutputManager';
 import { ScanResult } from '../../domain/entities/ScanResult';
 import { logger } from '../../utils/logger';
 
@@ -14,7 +15,8 @@ export class ScanSecretsCommand extends BaseCommand {
     constructor(
         private readonly scanUseCase: ScanForSecretsUseCase,
         private readonly diagnosticsManager: DiagnosticsManager,
-        private readonly highlightingManager: HighlightingManager
+        private readonly highlightingManager: HighlightingManager,
+        private readonly scanResultsOutput: ScanResultsOutputManager
     ) {
         super();
     }
@@ -38,6 +40,8 @@ export class ScanSecretsCommand extends BaseCommand {
             if (!scanResult.hasSecrets()) {
                 this.diagnosticsManager.clear();
                 this.highlightingManager.clear();
+                // Show empty results in output channel
+                this.scanResultsOutput.showResults(scanResult);
                 vscode.window.showInformationMessage('No hardcoded secrets found! Previous scan results cleared.');
                 return;
             }
@@ -46,8 +50,8 @@ export class ScanSecretsCommand extends BaseCommand {
             await this.diagnosticsManager.highlightSecrets(scanResult.secrets);
             await this.highlightingManager.highlightSecrets(scanResult.secrets);
             
-            // Show results
-            this.showResults(scanResult);
+            // Show results in dedicated output channel
+            this.scanResultsOutput.showResults(scanResult);
             
             vscode.window.showInformationMessage(
                 `Found ${scanResult.getTotalSecrets()} secrets. Previous scan results have been cleared.`
@@ -71,23 +75,5 @@ export class ScanSecretsCommand extends BaseCommand {
         }
     }
 
-    private showResults(scanResult: ScanResult): void {
-        // Implementation for showing results in output
-        const secretsByFile = scanResult.getSecretsByFile();
-        let output = `\n=== Secret Scan Results ===\n`;
-        output += `Total files scanned: ${scanResult.totalFilesScanned}\n`;
-        output += `Total secrets found: ${scanResult.getTotalSecrets()}\n\n`;
-        
-        for (const [fileName, secrets] of secretsByFile.entries()) {
-            output += `File: ${fileName}\n`;
-            for (const secret of secrets) {
-                output += `  Line ${secret.lineNumber}, Column ${secret.column}: ${secret.type}\n`;
-                output += `  Value: ${secret.value.substring(0, 50)}${secret.value.length > 50 ? '...' : ''}\n`;
-            }
-            output += '\n';
-        }
-        
-        logger.info(output);
-    }
 }
 

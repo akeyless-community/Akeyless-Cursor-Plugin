@@ -36,10 +36,12 @@ export class CommandFactory {
         commands.push(new LoadMoreCommand(treeProvider));
         commands.push(new CopySecretValueCommand(repository));
         commands.push(new SaveToAkeylessCommand(secretManagementService.saveUseCase, treeProvider));
+        const scanResultsOutput = container.resolve<any>(SERVICE_KEYS.SCAN_RESULTS_OUTPUT_MANAGER);
         commands.push(new ScanSecretsCommand(
             secretManagementService.scanUseCase,
             diagnosticsManager,
-            highlightingManager
+            highlightingManager,
+            scanResultsOutput
         ));
         commands.push(new ClearHighlightsCommand(diagnosticsManager, highlightingManager));
         commands.push(new FocusViewCommand());
