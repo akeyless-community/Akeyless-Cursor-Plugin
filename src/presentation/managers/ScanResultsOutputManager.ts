@@ -22,7 +22,7 @@ export class ScanResultsOutputManager {
         // Write header
         const scanDate = scanResult.scanDate.toLocaleString();
         this.outputChannel.appendLine('═══════════════════════════════════════════════════════════════');
-        this.outputChannel.appendLine('🔍 SECRET SCAN RESULTS');
+        this.outputChannel.appendLine('SECRET SCAN RESULTS');
         this.outputChannel.appendLine('═══════════════════════════════════════════════════════════════');
         this.outputChannel.appendLine(`Scan Date: ${scanDate}`);
         this.outputChannel.appendLine(`Files Scanned: ${scanResult.totalFilesScanned}`);
@@ -31,7 +31,7 @@ export class ScanResultsOutputManager {
         this.outputChannel.appendLine('');
 
         if (!scanResult.hasSecrets()) {
-            this.outputChannel.appendLine('✅ No hardcoded secrets found!');
+            this.outputChannel.appendLine('No hardcoded secrets found!');
             this.outputChannel.appendLine('');
             this.outputChannel.appendLine('Your codebase appears to be free of hardcoded secrets.');
             this.outputChannel.appendLine('═══════════════════════════════════════════════════════════════');
@@ -44,7 +44,7 @@ export class ScanResultsOutputManager {
                 const relativePath = vscode.workspace.asRelativePath(fileName, false);
                 
                 this.outputChannel.appendLine('───────────────────────────────────────────────────────────────');
-                this.outputChannel.appendLine(`📄 File ${fileIndex}: ${relativePath}`);
+                this.outputChannel.appendLine(`File ${fileIndex}: ${relativePath}`);
                 this.outputChannel.appendLine(`   Secrets found: ${secrets.length}`);
                 this.outputChannel.appendLine('───────────────────────────────────────────────────────────────');
                 
@@ -77,7 +77,7 @@ export class ScanResultsOutputManager {
             }
             
             this.outputChannel.appendLine('═══════════════════════════════════════════════════════════════');
-            this.outputChannel.appendLine('💡 Tip: Click on the file paths above to navigate to the secrets');
+            this.outputChannel.appendLine('Tip: Click on the file paths above to navigate to the secrets');
             this.outputChannel.appendLine('═══════════════════════════════════════════════════════════════');
         }
 

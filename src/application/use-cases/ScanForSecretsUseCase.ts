@@ -15,7 +15,7 @@ export class ScanForSecretsUseCase {
      * Scans the current project for hardcoded secrets
      */
     async execute(): Promise<ScanResult> {
-        logger.info('🔍 Executing scan for secrets use case');
+        logger.info(' Executing scan for secrets use case');
         
         try {
             const result = await this.scanner.scanCurrentProject();
@@ -30,7 +30,7 @@ export class ScanForSecretsUseCase {
             
             return new ScanResult(secrets, result.totalFilesScanned);
         } catch (error) {
-            logger.error('❌ Error in scan for secrets use case:', error);
+            logger.error(' Error in scan for secrets use case:', error);
             throw error;
         }
     }
@@ -39,7 +39,7 @@ export class ScanForSecretsUseCase {
      * Scans a single file
      */
     async scanFile(): Promise<ScanResult> {
-        logger.info('🔍 Executing single file scan use case');
+        logger.info(' Executing single file scan use case');
         
         try {
             const result = await this.scanner.scanCurrentFile();
@@ -53,7 +53,7 @@ export class ScanForSecretsUseCase {
             
             return new ScanResult(secrets, result.totalFilesScanned);
         } catch (error) {
-            logger.error('❌ Error in single file scan use case:', error);
+            logger.error(' Error in single file scan use case:', error);
             throw error;
         }
     }

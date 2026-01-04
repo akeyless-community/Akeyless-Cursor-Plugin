@@ -54,7 +54,7 @@ export class HighlightingManager {
                 });
 
                 editor.setDecorations(this.decorationType, ranges);
-                logger.debug(`✅ Highlighted ${ranges.length} secrets in ${fileName}`);
+                logger.debug(` Highlighted ${ranges.length} secrets in ${fileName}`);
             } else {
                 editor.setDecorations(this.decorationType, []);
             }
@@ -69,7 +69,7 @@ export class HighlightingManager {
             editor.setDecorations(this.decorationType, []);
         }
         this.decorations.clear();
-        logger.debug('🧹 Highlighting cleared');
+        logger.debug(' Highlighting cleared');
     }
 
     /**

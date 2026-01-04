@@ -25,7 +25,7 @@ export class DiagnosticsManager {
      * Highlights secrets in the editor using diagnostics
      */
     async highlightSecrets(secrets: SecretType[]): Promise<void> {
-        logger.info(`🔍 Highlighting ${secrets.length} secrets with diagnostics`);
+        logger.info(` Highlighting ${secrets.length} secrets with diagnostics`);
         
         // Clear existing diagnostics
         this.clear();
@@ -68,11 +68,11 @@ export class DiagnosticsManager {
 
                 this.diagnostics.set(uri, diagnosticArray);
             } catch (error) {
-                logger.error(`❌ Error highlighting secrets in ${fileName}:`, error);
+                logger.error(` Error highlighting secrets in ${fileName}:`, error);
             }
         }
 
-        logger.info(`✅ Diagnostics set for ${secretsByFile.size} files`);
+        logger.info(` Diagnostics set for ${secretsByFile.size} files`);
     }
 
     /**
@@ -80,7 +80,7 @@ export class DiagnosticsManager {
      */
     clear(): void {
         this.diagnostics.clear();
-        logger.debug('🧹 Diagnostics cleared');
+        logger.debug(' Diagnostics cleared');
     }
 
     /**

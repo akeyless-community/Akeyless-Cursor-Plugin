@@ -22,7 +22,7 @@ export class AutoScanHandler {
      * Registers auto-scan on save functionality
      */
     register(context: vscode.ExtensionContext): void {
-        logger.info('🔧 Registering auto-scan on save functionality...');
+        logger.info(' Registering auto-scan on save functionality...');
 
         const onDidSaveDocument = vscode.workspace.onDidSaveTextDocument(async (document: vscode.TextDocument) => {
             // Check if auto-scan is enabled
@@ -39,12 +39,12 @@ export class AutoScanHandler {
             }
 
             try {
-                logger.debug(`🔍 Auto-scanning file: ${document.fileName}`);
+                logger.debug(` Auto-scanning file: ${document.fileName}`);
                 
                 const scanResult = await this.scanUseCase.scanFile();
 
                 if (scanResult.hasSecrets()) {
-                    logger.info(`🚨 Found ${scanResult.getTotalSecrets()} secrets in ${document.fileName}`);
+                    logger.info(` Found ${scanResult.getTotalSecrets()} secrets in ${document.fileName}`);
                     
                     await this.diagnosticsManager.highlightSecrets(scanResult.secrets);
                     await this.highlightingManager.highlightSecrets(scanResult.secrets);
@@ -54,20 +54,20 @@ export class AutoScanHandler {
                         'View Details'
                     );
                 } else {
-                    logger.debug(`✅ No secrets found in ${document.fileName}`);
+                    logger.debug(` No secrets found in ${document.fileName}`);
                 }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 if (errorMessage.includes('Invalid string length')) {
-                    logger.warn(`⚠️ Skipping file ${document.fileName} - file too large to scan`);
+                    logger.warn(` Skipping file ${document.fileName} - file too large to scan`);
                 } else {
-                    logger.error(`❌ Error auto-scanning ${document.fileName}:`, error);
+                    logger.error(` Error auto-scanning ${document.fileName}:`, error);
                 }
             }
         });
 
         context.subscriptions.push(onDidSaveDocument);
-        logger.info('✅ Auto-scan on save functionality registered');
+        logger.info(' Auto-scan on save functionality registered');
     }
 }
 

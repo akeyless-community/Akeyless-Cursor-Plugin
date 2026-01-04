@@ -82,7 +82,7 @@ export class SaveToAkeylessCommand extends BaseCommand {
             // Save secret
             await this.saveUseCase.execute(secretName, confirmText);
             
-            vscode.window.showInformationMessage(`✅ Secret saved to Akeyless: ${secretName}`);
+            vscode.window.showInformationMessage(` Secret saved to Akeyless: ${secretName}`);
             
             // Refresh tree
             await this.treeProvider.refresh();

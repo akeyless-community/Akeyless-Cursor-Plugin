@@ -23,13 +23,13 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
     }
 
     setSearchTerm(term: string): void {
-        logger.info('🔍 Setting search term:', term);
+        logger.info('Setting search term:', term);
         this.searchTerm = term.toLowerCase();
         this._onDidChangeTreeData.fire();
     }
 
     async refresh(): Promise<void> {
-        logger.info('🔄 Manual refresh initiated');
+        logger.info('Manual refresh initiated');
         
         // Clear cache to force fresh data
         this.cachedItems = [];
@@ -44,26 +44,26 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
      */
     async loadNextPage(): Promise<{ itemsLoaded: number, nextToken: string | null, hasMore: boolean }> {
         if (this.isLoading || !this.hasMorePages) {
-            logger.info(`🚫 Skipping load - isLoading: ${this.isLoading}, hasMorePages: ${this.hasMorePages}`);
+            logger.info(`Skipping load - isLoading: ${this.isLoading}, hasMorePages: ${this.hasMorePages}`);
             return { itemsLoaded: 0, nextToken: this.nextPageToken, hasMore: this.hasMorePages };
         }
 
         this.isLoading = true;
-        logger.info(`🔄 Starting to load next page...`);
-        logger.info(`📊 Current state - Cached items: ${this.cachedItems.length}, Next token: ${this.nextPageToken || 'none'}, Has more: ${this.hasMorePages}`);
+        logger.info(`Starting to load next page...`);
+        logger.info(`Current state - Cached items: ${this.cachedItems.length}, Next token: ${this.nextPageToken || 'none'}, Has more: ${this.hasMorePages}`);
         
         try {
             const tokenParam = this.nextPageToken ? `--pagination-token "${this.nextPageToken}"` : '';
-            logger.info(`📡 Making CLI call: akeyless list-items --json ${tokenParam}`);
+            logger.info(`Making CLI call: akeyless list-items --json ${tokenParam}`);
             
             const result = await this.akeylessCLI.listItemsPage(this.nextPageToken || undefined);
             
-            logger.info(`✅ CLI call successful!`);
-            logger.info(`📦 Received ${result.items.length} items from page`);
-            logger.info(`📄 Next page token: ${result.nextPage || 'null'}`);
+            logger.info(`CLI call successful!`);
+            logger.info(`Received ${result.items.length} items from page`);
+            logger.info(`Next page token: ${result.nextPage || 'null'}`);
             
             if (result.items.length > 0) {
-                logger.info(`📋 Sample items from this page:`);
+                logger.info(`Sample items from this page:`);
                 result.items.slice(0, 3).forEach((item, index) => {
                     logger.info(`   ${index + 1}. ${item.item_name} (${item.item_type})`);
                 });
@@ -74,32 +74,32 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
                 const treeItems = result.items.map(item => new SecretTreeItem(item, { type: STATUS_TYPES.NORMAL }));
                 this.cachedItems.push(...treeItems);
                 itemsLoaded = treeItems.length;
-                logger.info(`✅ Added ${treeItems.length} items to cache`);
+                logger.info(`Added ${treeItems.length} items to cache`);
             }
             
             this.nextPageToken = result.nextPage;
             this.hasMorePages = result.nextPage !== null;
             
-            logger.info(`📊 Updated state - Total cached items: ${this.cachedItems.length}`);
-            logger.info(`🔄 Has more pages: ${this.hasMorePages}`);
+            logger.info(`Updated state - Total cached items: ${this.cachedItems.length}`);
+            logger.info(`Has more pages: ${this.hasMorePages}`);
             
             if (!this.hasMorePages) {
-                logger.info('✅ No more pages available');
+                logger.info('No more pages available');
             }
             
             return { itemsLoaded, nextToken: result.nextPage, hasMore: this.hasMorePages };
             
         } catch (error) {
-            logger.error('❌ Error loading next page:', error);
+            logger.error('Error loading next page:', error);
             this.hasMorePages = false;
-            logger.info(`🔄 Set hasMorePages to false due to error`);
+            logger.info(`Set hasMorePages to false due to error`);
             this.cachedItems.push(new SecretTreeItem(createMockItem(`${MESSAGES.ERROR_LOADING} ${error}`, 'ERROR'), { type: STATUS_TYPES.ERROR }));
             return { itemsLoaded: 0, nextToken: null, hasMore: false };
         } finally {
             this.isLoading = false;
-            logger.info(`🏁 Finished loading attempt. isLoading: ${this.isLoading}`);
+            logger.info(`Finished loading attempt. isLoading: ${this.isLoading}`);
             this._onDidChangeTreeData.fire();
-            logger.info(`🔄 UI refresh triggered`);
+            logger.info(`UI refresh triggered`);
         }
     }
 
@@ -367,7 +367,7 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
                    item.item.item_type.toLowerCase().includes(this.searchTerm);
         });
         
-        logger.debug(`🔍 Filtered ${items.length} items to ${filtered.length} items for search term: "${this.searchTerm}"`);
+        logger.debug(`Filtered ${items.length} items to ${filtered.length} items for search term: "${this.searchTerm}"`);
         return filtered;
     }
 
@@ -459,7 +459,7 @@ export class SecretTreeItem extends vscode.TreeItem {
             case STATUS_TYPES.AUTH_REQUIRED: {
                 // Use Akeyless logo for authentication required
                 const authIconPath = path.join(__dirname, '..', '..', ICONS.AKEYLESS_LOGO);
-                logger.debug(`🔐 Using Akeyless logo for auth required: ${authIconPath}`);
+                logger.debug(`Using Akeyless logo for auth required: ${authIconPath}`);
                 this.iconPath = {
                     light: vscode.Uri.file(authIconPath),
                     dark: vscode.Uri.file(authIconPath)

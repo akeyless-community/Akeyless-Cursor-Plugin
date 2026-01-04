@@ -15,7 +15,7 @@ export class CommandRegistry {
      */
     register(command: ICommand): void {
         this.commands.set(command.getId(), command);
-        logger.debug(`📝 Registered command: ${command.getId()}`);
+        logger.debug(`Registered command: ${command.getId()}`);
     }
 
     /**
@@ -38,7 +38,7 @@ export class CommandRegistry {
      * Registers all commands with VS Code
      */
     registerWithVSCode(context: vscode.ExtensionContext): void {
-        logger.info('🔧 Registering commands with VS Code...');
+        logger.info(' Registering commands with VS Code...');
         
         const disposables: vscode.Disposable[] = [];
         
@@ -49,7 +49,7 @@ export class CommandRegistry {
                     try {
                         await command.execute(...args);
                     } catch (error) {
-                        logger.error(`❌ Error executing command ${commandId}:`, error);
+                        logger.error(` Error executing command ${commandId}:`, error);
                         throw error;
                     }
                 }
@@ -60,7 +60,7 @@ export class CommandRegistry {
         
         disposables.forEach(d => context.subscriptions.push(d));
         
-        logger.info(`✅ Registered ${this.commands.size} commands with VS Code`);
+        logger.info(` Registered ${this.commands.size} commands with VS Code`);
     }
 
     /**

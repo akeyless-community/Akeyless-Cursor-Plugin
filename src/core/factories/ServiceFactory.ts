@@ -131,7 +131,7 @@ export class ServiceFactory {
             true
         );
 
-        logger.info('✅ Service container initialized with all dependencies');
+        logger.info('Service container initialized with all dependencies');
         return this.container;
     }
 

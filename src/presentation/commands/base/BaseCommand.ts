@@ -26,14 +26,14 @@ export abstract class BaseCommand implements ICommand {
      * Handles errors consistently
      */
     protected handleError(error: unknown, context: string): void {
-        logger.error(`❌ Error in ${this.getId()}: ${context}`, error);
+        logger.error(` Error in ${this.getId()}: ${context}`, error);
     }
 
     /**
      * Logs command execution
      */
     protected logExecution(): void {
-        logger.info(`▶️ Executing command: ${this.getTitle()} (${this.getId()})`);
+        logger.info(` Executing command: ${this.getTitle()} (${this.getId()})`);
     }
 }
 

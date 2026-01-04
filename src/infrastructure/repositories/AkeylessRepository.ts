@@ -28,7 +28,7 @@ export class AkeylessRepository implements IAkeylessRepository {
 
     async listItems(): Promise<AkeylessItem[]> {
         try {
-            logger.info('📋 Getting items from Akeyless CLI with pagination...');
+            logger.info('Getting items from Akeyless CLI with pagination...');
             
             // Check if akeyless CLI is available
             await this.verifyCLIAvailable();
@@ -39,7 +39,7 @@ export class AkeylessRepository implements IAkeylessRepository {
             
             do {
                 pageCount++;
-                logger.info(`📄 Fetching page ${pageCount}...`);
+                logger.info(`Fetching page ${pageCount}...`);
                 
                 const command = this.buildListCommand(nextPage);
                 const { stdout } = await this.execAsync(command);
@@ -55,7 +55,7 @@ export class AkeylessRepository implements IAkeylessRepository {
                 }
             } while (nextPage);
             
-            logger.info(`✅ Retrieved ${allItems.length} items from Akeyless`);
+            logger.info(`Retrieved ${allItems.length} items from Akeyless`);
             return allItems;
         } catch (error) {
             if (error instanceof RepositoryError) {
@@ -67,7 +67,7 @@ export class AkeylessRepository implements IAkeylessRepository {
 
     async getSecretValue(path: string): Promise<string> {
         try {
-            logger.info(`🔍 Getting secret value for path: ${path}`);
+            logger.info(`Getting secret value for path: ${path}`);
             const command = `${this.akeylessPath} get-secret-value --path "${path}" --json`;
             const { stdout } = await this.execAsync(command);
             
@@ -108,10 +108,10 @@ export class AkeylessRepository implements IAkeylessRepository {
 
     async createSecret(path: string, value: string, itemType: string = 'STATIC_SECRET'): Promise<void> {
         try {
-            logger.info(`💾 Creating secret at path: ${path}`);
+            logger.info(`Creating secret at path: ${path}`);
             const command = `${this.akeylessPath} create-secret --path "${path}" --value "${value}" --type ${itemType} --json`;
             await this.execAsync(command);
-            logger.info(`✅ Secret created successfully at: ${path}`);
+            logger.info(`Secret created successfully at: ${path}`);
         } catch (error) {
             throw new RepositoryError(`Failed to create secret: ${error instanceof Error ? error.message : String(error)}`);
         }
@@ -119,10 +119,10 @@ export class AkeylessRepository implements IAkeylessRepository {
 
     async updateSecret(path: string, value: string): Promise<void> {
         try {
-            logger.info(`🔄 Updating secret at path: ${path}`);
+            logger.info(`Updating secret at path: ${path}`);
             const command = `${this.akeylessPath} update-secret-value --path "${path}" --value "${value}" --json`;
             await this.execAsync(command);
-            logger.info(`✅ Secret updated successfully at: ${path}`);
+            logger.info(`Secret updated successfully at: ${path}`);
         } catch (error) {
             throw new RepositoryError(`Failed to update secret: ${error instanceof Error ? error.message : String(error)}`);
         }
@@ -130,10 +130,10 @@ export class AkeylessRepository implements IAkeylessRepository {
 
     async deleteSecret(path: string): Promise<void> {
         try {
-            logger.info(`🗑️ Deleting secret at path: ${path}`);
+            logger.info(`Deleting secret at path: ${path}`);
             const command = `${this.akeylessPath} delete-item --path "${path}" --json`;
             await this.execAsync(command);
-            logger.info(`✅ Secret deleted successfully at: ${path}`);
+            logger.info(`Secret deleted successfully at: ${path}`);
         } catch (error) {
             throw new RepositoryError(`Failed to delete secret: ${error instanceof Error ? error.message : String(error)}`);
         }
@@ -141,7 +141,7 @@ export class AkeylessRepository implements IAkeylessRepository {
 
     async searchSecrets(pattern: string): Promise<AkeylessItem[]> {
         try {
-            logger.info(`🔍 Searching secrets with pattern: ${pattern}`);
+            logger.info(`Searching secrets with pattern: ${pattern}`);
             const allItems = await this.listItems();
             const lowerPattern = pattern.toLowerCase();
             return allItems.filter(item => 
@@ -157,7 +157,7 @@ export class AkeylessRepository implements IAkeylessRepository {
      */
     async listItemsPage(paginationToken?: string): Promise<{ items: AkeylessItem[], nextPage: string | null }> {
         try {
-            logger.info(`📄 Fetching page with token: ${paginationToken || 'none'}`);
+            logger.info(`Fetching page with token: ${paginationToken || 'none'}`);
             const command = this.buildListCommand(paginationToken || null);
             const { stdout } = await this.execAsync(command);
             
@@ -188,7 +188,7 @@ export class AkeylessRepository implements IAkeylessRepository {
      */
     async getDynamicSecretValue(secretName: string): Promise<any> {
         try {
-            logger.info(`🔄 Getting dynamic secret value for: ${secretName}`);
+            logger.info(`Getting dynamic secret value for: ${secretName}`);
             const command = `${this.akeylessPath} get-dynamic-secret-value --name "${secretName}" --json`;
             const { stdout } = await this.execAsync(command);
             return JSON.parse(stdout);
@@ -202,7 +202,7 @@ export class AkeylessRepository implements IAkeylessRepository {
      */
     async getRotatedSecretValue(secretName: string): Promise<any> {
         try {
-            logger.info(`🔄 Getting rotated secret value for: ${secretName}`);
+            logger.info(`Getting rotated secret value for: ${secretName}`);
             const command = `${this.akeylessPath} get-rotated-secret-value --name "${secretName}" --json`;
             const { stdout } = await this.execAsync(command);
             return JSON.parse(stdout);

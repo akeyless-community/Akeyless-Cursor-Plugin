@@ -4,21 +4,21 @@ Find and fix hardcoded secrets in your code by integrating directly with Akeyles
 
 ## Features
 
-### 🔍 Secret Scanning
+### Secret Scanning
 - **Automatic scanning**: Automatically scan for hardcoded secrets when files are saved (configurable)
 - **Manual scanning**: Scan your entire project for hardcoded secrets with a single command
 - **Multi-language support**: Works with JavaScript, TypeScript, Python, Go, Java, C#, C++, Rust, Ruby, PHP, and many more
 - **Smart detection**: Identifies API keys, passwords, tokens, and other sensitive credentials
 - **Visual highlighting**: Secrets are highlighted in your code with diagnostic markers
 
-### 🔐 Akeyless Integration
+### Akeyless Integration
 - **Secrets tree view**: Browse and manage your Akeyless secrets directly from VS Code
 - **Save to Akeyless**: Quickly save selected text as a secret to Akeyless
 - **Get secret values**: Copy secret values directly from the tree view
 - **Search secrets**: Search through your Akeyless secrets collection
 - **Auto-completion**: Get secret name suggestions as you type
 
-### 📊 Results Management
+### Results Management
 - **Problems tab**: View detected secrets in the Problems tab for easy navigation
 - **Output panel**: Detailed scan results in a dedicated output channel
 - **Clear highlights**: Remove secret highlights when no longer needed

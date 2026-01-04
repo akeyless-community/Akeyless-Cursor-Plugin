@@ -14,7 +14,7 @@ export class GetSecretValueUseCase {
      * Gets the value of a secret
      */
     async execute(path: string): Promise<string> {
-        logger.info(`🔐 Executing get secret value use case: ${path}`);
+        logger.info(` Executing get secret value use case: ${path}`);
         
         try {
             const secretPath = SecretPath.from(path);
@@ -26,7 +26,7 @@ export class GetSecretValueUseCase {
             
             return value;
         } catch (error) {
-            logger.error('❌ Error in get secret value use case:', error);
+            logger.error(' Error in get secret value use case:', error);
             if (error instanceof RepositoryError) {
                 throw error;
             }

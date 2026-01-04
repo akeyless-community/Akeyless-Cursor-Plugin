@@ -37,7 +37,7 @@ export class CopySecretValueCommand extends BaseCommand {
             const secretName = item.item_name;
             const itemType = item.item_type;
 
-            logger.info(`🔐 Getting secret value for: ${secretName} (type: ${itemType})`);
+            logger.info(`Getting secret value for: ${secretName} (type: ${itemType})`);
             vscode.window.showInformationMessage('Getting secret value...');
             
             let secretValue: string;
@@ -102,7 +102,7 @@ export class CopySecretValueCommand extends BaseCommand {
             await vscode.env.clipboard.writeText(secretValue);
             
             // Show simple notification - no "View Full Content" option
-            vscode.window.showInformationMessage(`✅ Secret value copied to clipboard!`);
+            vscode.window.showInformationMessage(`Secret value copied to clipboard!`);
         } catch (error) {
             this.handleError(error, 'copy operation');
             const errorMessage = error instanceof Error ? error.message : String(error);

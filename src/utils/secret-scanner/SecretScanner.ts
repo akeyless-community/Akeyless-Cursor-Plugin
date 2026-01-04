@@ -217,9 +217,9 @@ export class SecretScanner {
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 if (error instanceof RangeError && (errorMessage.includes('Invalid string length') || errorMessage.includes('Maximum call stack'))) {
-                    logger.warn(`⚠️ Skipping file ${vscode.workspace.asRelativePath(file.fsPath)} - file too large to process (${errorMessage})`);
+                    logger.warn(` Skipping file ${vscode.workspace.asRelativePath(file.fsPath)} - file too large to process (${errorMessage})`);
                 } else {
-                    logger.error(`❌ Error scanning file ${vscode.workspace.asRelativePath(file.fsPath)}:`, error);
+                    logger.error(` Error scanning file ${vscode.workspace.asRelativePath(file.fsPath)}:`, error);
                 }
             }
         }
@@ -252,10 +252,10 @@ export class SecretScanner {
             }
         } catch (error) {
             if (error instanceof RangeError && error.message.includes('Invalid string length')) {
-                logger.warn(`⚠️ File ${activeEditor.document.fileName} is too large to scan`);
+                logger.warn(` File ${activeEditor.document.fileName} is too large to scan`);
                 vscode.window.showWarningMessage(`File is too large to scan for secrets (maximum size: 50MB)`);
             } else {
-                logger.error(`❌ Error scanning current file:`, error);
+                logger.error(` Error scanning current file:`, error);
             }
         }
 
@@ -297,9 +297,9 @@ export class SecretScanner {
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 if (error instanceof RangeError && (errorMessage.includes('Invalid string length') || errorMessage.includes('Maximum call stack'))) {
-                    logger.warn(`⚠️ Skipping file ${vscode.workspace.asRelativePath(file.fsPath)} - file too large to process (${errorMessage})`);
+                    logger.warn(` Skipping file ${vscode.workspace.asRelativePath(file.fsPath)} - file too large to process (${errorMessage})`);
                 } else {
-                    logger.error(`❌ Error scanning file ${vscode.workspace.asRelativePath(file.fsPath)}:`, error);
+                    logger.error(` Error scanning file ${vscode.workspace.asRelativePath(file.fsPath)}:`, error);
                 }
             }
         }

@@ -14,7 +14,7 @@ export class ListSecretsUseCase {
      * Lists all secrets from Akeyless
      */
     async execute(): Promise<Secret[]> {
-        logger.info('📋 Executing list secrets use case');
+        logger.info(' Executing list secrets use case');
         
         try {
             const items = await this.repository.listItems();
@@ -35,7 +35,7 @@ export class ListSecretsUseCase {
                 }
             ));
         } catch (error) {
-            logger.error('❌ Error in list secrets use case:', error);
+            logger.error(' Error in list secrets use case:', error);
             if (error instanceof RepositoryError) {
                 throw error;
             }
@@ -47,7 +47,7 @@ export class ListSecretsUseCase {
      * Searches for secrets by pattern
      */
     async search(pattern: string): Promise<Secret[]> {
-        logger.info(`🔍 Executing search secrets use case: ${pattern}`);
+        logger.info(` Executing search secrets use case: ${pattern}`);
         
         try {
             const items = await this.repository.searchSecrets(pattern);
@@ -63,7 +63,7 @@ export class ListSecretsUseCase {
                 }
             ));
         } catch (error) {
-            logger.error('❌ Error in search secrets use case:', error);
+            logger.error(' Error in search secrets use case:', error);
             throw new RepositoryError(`Failed to search secrets: ${error instanceof Error ? error.message : String(error)}`);
         }
     }

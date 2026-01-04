@@ -319,7 +319,7 @@ export class ScanResultsWebviewManager {
 </head>
 <body>
     <div class="header">
-        <h1>🔍 Secret Scan Results</h1>
+        <h1>Secret Scan Results</h1>
         <div class="stats">
             <div class="stat-item">
                 <span class="stat-label">Total Secrets</span>
@@ -342,7 +342,7 @@ export class ScanResultsWebviewManager {
     
     ${totalSecrets > 0 ? fileSections : `
         <div class="empty-state">
-            <div class="icon">✅</div>
+            <div class="icon">✓</div>
             <h2>No Secrets Found</h2>
             <p>Great! No hardcoded secrets were detected in your project.</p>
         </div>

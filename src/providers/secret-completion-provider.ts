@@ -11,7 +11,7 @@ export class SecretCompletionProvider implements vscode.CompletionItemProvider {
 
     constructor(secretsTreeProvider: SecretsTreeProvider) {
         this.secretsTreeProvider = secretsTreeProvider;
-        logger.info('💡 SecretCompletionProvider initialized');
+        logger.info(' SecretCompletionProvider initialized');
     }
 
     /**
@@ -110,7 +110,7 @@ export class SecretCompletionProvider implements vscode.CompletionItemProvider {
             // Filter based on what user is typing
             const filteredItems = this.filterCompletions(completionItems, linePrefix);
 
-            logger.debug(`💡 Providing ${filteredItems.length} secret name suggestions`);
+            logger.debug(` Providing ${filteredItems.length} secret name suggestions`);
             
             return new vscode.CompletionList(filteredItems, false);
             

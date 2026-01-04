@@ -19,7 +19,7 @@ export class CommandFactory {
      * Creates all commands with their dependencies
      */
     static createAllCommands(container: ServiceContainer): ICommand[] {
-        logger.info('🏭 Creating all commands...');
+        logger.info('Creating all commands...');
 
         const commands: ICommand[] = [];
 
@@ -46,7 +46,7 @@ export class CommandFactory {
         commands.push(new ClearHighlightsCommand(diagnosticsManager, highlightingManager));
         commands.push(new FocusViewCommand());
 
-        logger.info(`✅ Created ${commands.length} commands`);
+        logger.info(`Created ${commands.length} commands`);
         return commands;
     }
 }

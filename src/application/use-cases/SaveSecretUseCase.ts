@@ -14,7 +14,7 @@ export class SaveSecretUseCase {
      * Saves a secret to Akeyless
      */
     async execute(path: string, value: string, itemType: string = 'STATIC_SECRET'): Promise<void> {
-        logger.info(`💾 Executing save secret use case: ${path}`);
+        logger.info(` Executing save secret use case: ${path}`);
         
         try {
             // Validate inputs
@@ -29,7 +29,7 @@ export class SaveSecretUseCase {
             
             await this.repository.createSecret(secretPath.toString(), value, itemType);
             
-            logger.info(`✅ Secret saved successfully: ${path}`);
+            logger.info(` Secret saved successfully: ${path}`);
         } catch (error) {
             if (error instanceof RepositoryError) {
                 throw error;

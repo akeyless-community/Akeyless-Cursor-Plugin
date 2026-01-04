@@ -15,7 +15,7 @@ const execAsync = execWithBuffer;
 
 export class AkeylessCLI {
     constructor() {
-        logger.info('🔧 AkeylessCLI initialized');
+        logger.info(' AkeylessCLI initialized');
     }
 
     /**
@@ -23,7 +23,7 @@ export class AkeylessCLI {
      */
     async listItems(): Promise<AkeylessItem[]> {
         try {
-            logger.info('📋 Getting items from Akeyless CLI with pagination...');
+            logger.info(' Getting items from Akeyless CLI with pagination...');
             
             // Use akeyless from system PATH
             const akeylessPath = 'akeyless';
@@ -41,7 +41,7 @@ export class AkeylessCLI {
             
             do {
                 pageCount++;
-                logger.info(`📄 Fetching page ${pageCount}...`);
+                logger.info(` Fetching page ${pageCount}...`);
                 
                 // Build command with pagination
                 let command = `${akeylessPath} list-items --json`;
@@ -54,11 +54,11 @@ export class AkeylessCLI {
                 
                 // Check if response is empty (no items and no next_page)
                 if (!data.items || data.items.length === 0) {
-                    logger.info(`📭 Empty response received, stopping pagination`);
+                    logger.info(` Empty response received, stopping pagination`);
                     break;
                 }
                 
-                logger.info(`📦 Received ${data.items.length} items from page ${pageCount}`);
+                logger.info(` Received ${data.items.length} items from page ${pageCount}`);
                 
                 // Filter items to only include the types we want (CLI returns uppercase)
                 const validTypes = ['STATIC_SECRET', 'DYNAMIC_SECRET', 'ROTATED_SECRET', 'CLASSIC_KEY'];
@@ -66,24 +66,24 @@ export class AkeylessCLI {
                     return validTypes.includes(item.item_type);
                 });
                 
-                logger.info(`🔍 Filtered to ${filteredItems.length} items of valid types from page ${pageCount}`);
+                logger.info(` Filtered to ${filteredItems.length} items of valid types from page ${pageCount}`);
                 allItems.push(...filteredItems);
                 
                 // Get next page token
                 nextPage = data.next_page || null;
                 
                 if (nextPage) {
-                    logger.info(`🔄 Next page token: ${nextPage}`);
+                    logger.info(` Next page token: ${nextPage}`);
                 } else {
-                    logger.info(`✅ No more pages available`);
+                    logger.info(` No more pages available`);
                 }
                 
             } while (nextPage && pageCount < 100); // Limit to 100 pages to prevent infinite loops
             
-            logger.info(`🎉 Completed listing items. Total pages: ${pageCount}, Total items: ${allItems.length}`);
+            logger.info(` Completed listing items. Total pages: ${pageCount}, Total items: ${allItems.length}`);
             return allItems;
         } catch (error) {
-            logger.error('❌ Failed to list items from CLI:', error);
+            logger.error(' Failed to list items from CLI:', error);
             throw new Error(`Failed to list items: ${error}`);
         }
     }
@@ -93,7 +93,7 @@ export class AkeylessCLI {
      */
     async listItemsPage(paginationToken?: string): Promise<{ items: AkeylessItem[], nextPage: string | null }> {
         try {
-            logger.info(`📄 Fetching page with token: ${paginationToken || 'none'}`);
+            logger.info(` Fetching page with token: ${paginationToken || 'none'}`);
             
             // Use akeyless from system PATH
             const akeylessPath = 'akeyless';
@@ -111,12 +111,12 @@ export class AkeylessCLI {
                 command += ` --pagination-token "${paginationToken}"`;
             }
             
-            logger.info(`🔧 Executing CLI command: ${command}`);
+            logger.info(` Executing CLI command: ${command}`);
             const { stdout } = await execAsync(command);
-            logger.info(`📥 Raw CLI response length: ${stdout.length} characters`);
+            logger.info(` Raw CLI response length: ${stdout.length} characters`);
             
             const data = JSON.parse(stdout);
-            logger.info(`📊 Parsed response structure:`, {
+            logger.info(` Parsed response structure:`, {
                 hasItems: !!data.items,
                 itemsLength: data.items?.length || 0,
                 hasNextPage: !!data.next_page,
@@ -125,11 +125,11 @@ export class AkeylessCLI {
             
             // Check if response is empty
             if (!data.items || data.items.length === 0) {
-                logger.info(`📭 Empty response received`);
+                logger.info(` Empty response received`);
                 return { items: [], nextPage: null };
             }
             
-            logger.info(`📦 Received ${data.items.length} items from page`);
+            logger.info(` Received ${data.items.length} items from page`);
             
             // Filter items to only include the types we want (CLI returns uppercase)
             const validTypes = ['STATIC_SECRET', 'DYNAMIC_SECRET', 'ROTATED_SECRET', 'CLASSIC_KEY'];
@@ -137,11 +137,11 @@ export class AkeylessCLI {
                 return validTypes.includes(item.item_type);
             });
             
-            logger.info(`🔍 Filtered to ${filteredItems.length} items of valid types`);
+            logger.info(` Filtered to ${filteredItems.length} items of valid types`);
             
             // Log sample items for debugging
             if (filteredItems.length > 0) {
-                logger.info(`📋 Sample filtered items:`);
+                logger.info(` Sample filtered items:`);
                 filteredItems.slice(0, 3).forEach((item: any, index: number) => {
                     logger.info(`   ${index + 1}. ${item.item_name} (${item.item_type})`);
                 });
@@ -152,7 +152,7 @@ export class AkeylessCLI {
                 nextPage: data.next_page || null
             };
         } catch (error) {
-            logger.error('❌ Failed to list items page from CLI:', error);
+            logger.error(' Failed to list items page from CLI:', error);
             throw new Error(`Failed to list items page: ${error}`);
         }
     }
@@ -162,7 +162,7 @@ export class AkeylessCLI {
      */
     async getSecretValue(secretName: string): Promise<any> {
         try {
-            logger.info(`🔐 Getting secret value for: ${secretName}`);
+            logger.info(` Getting secret value for: ${secretName}`);
             
             // Use akeyless from system PATH
             const akeylessPath = 'akeyless';
@@ -192,10 +192,10 @@ export class AkeylessCLI {
             
             const data = JSON.parse(stdout);
             
-            logger.info(`✅ Secret value retrieved successfully`);
+            logger.info(` Secret value retrieved successfully`);
             return data;
         } catch (error) {
-            logger.error('❌ Failed to get secret value from CLI:', error);
+            logger.error(' Failed to get secret value from CLI:', error);
             throw new Error(`Failed to get secret value: ${error}`);
         }
     }
@@ -205,7 +205,7 @@ export class AkeylessCLI {
      */
     async getDynamicSecretValue(secretName: string): Promise<any> {
         try {
-            logger.info(`🔄 Getting dynamic secret value for: ${secretName}`);
+            logger.info(` Getting dynamic secret value for: ${secretName}`);
             
             // Use akeyless from system PATH
             const akeylessPath = 'akeyless';
@@ -221,10 +221,10 @@ export class AkeylessCLI {
             const { stdout } = await execAsync(`${akeylessPath} get-dynamic-secret-value --name "${secretName}" --json`);
             const data = JSON.parse(stdout);
             
-            logger.info(`✅ Dynamic secret value retrieved successfully`);
+            logger.info(` Dynamic secret value retrieved successfully`);
             return data;
         } catch (error) {
-            logger.error('❌ Failed to get dynamic secret value from CLI:', error);
+            logger.error(' Failed to get dynamic secret value from CLI:', error);
             throw new Error(`Failed to get dynamic secret value: ${error}`);
         }
     }
@@ -234,7 +234,7 @@ export class AkeylessCLI {
      */
     async getRotatedSecretValue(secretName: string): Promise<any> {
         try {
-            logger.info(`🔄 Getting rotated secret value for: ${secretName}`);
+            logger.info(` Getting rotated secret value for: ${secretName}`);
             
             // Use akeyless from system PATH
             const akeylessPath = 'akeyless';
@@ -250,10 +250,10 @@ export class AkeylessCLI {
             const { stdout } = await execAsync(`${akeylessPath} get-rotated-secret-value --name "${secretName}" --json`);
             const data = JSON.parse(stdout);
             
-            logger.info(`✅ Rotated secret value retrieved successfully`);
+            logger.info(` Rotated secret value retrieved successfully`);
             return data;
         } catch (error) {
-            logger.error('❌ Failed to get rotated secret value from CLI:', error);
+            logger.error(' Failed to get rotated secret value from CLI:', error);
             throw new Error(`Failed to get rotated secret value: ${error}`);
         }
     }
@@ -263,7 +263,7 @@ export class AkeylessCLI {
      */
     async createStaticSecret(secretName: string, secretValue: string): Promise<any> {
         try {
-            logger.info(`💾 Creating static secret: ${secretName}`);
+            logger.info(` Creating static secret: ${secretName}`);
             
             // Use akeyless from system PATH
             const akeylessPath = 'akeyless';
@@ -279,15 +279,15 @@ export class AkeylessCLI {
             // Escape the secret value to handle special characters
             const escapedValue = secretValue.replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
             const command = `${akeylessPath} create-secret --name "${secretName}" --value "${escapedValue}" --json`;
-            logger.info(`🔧 Executing CLI command: ${command}`);
+            logger.info(` Executing CLI command: ${command}`);
             
             const { stdout } = await execAsync(command);
             const data = JSON.parse(stdout);
             
-            logger.info(`✅ Static secret created successfully: ${secretName}`);
+            logger.info(` Static secret created successfully: ${secretName}`);
             return data;
         } catch (error) {
-            logger.error('❌ Failed to create static secret:', error);
+            logger.error(' Failed to create static secret:', error);
             throw new Error(`Failed to create static secret: ${error}`);
         }
     }
