@@ -10,6 +10,7 @@
     "url": "https://github.com/akeyless-community/Akeyless-Cursor-Plugin"
   },
   "icon": "resources/icons/logo_akeyless.png",
+  "readme": "README.md",
   "galleryBanner": {
     "color": "#1e1e1e",
     "theme": "dark"
