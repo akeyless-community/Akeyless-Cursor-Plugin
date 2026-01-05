@@ -6,3 +6,4 @@ export { ISecretScanner } from './ISecretScanner';
 export { IConfigurationService } from './IConfigurationService';
 export { ICommand } from './ICommand';
 
+

@@ -1,7 +1,7 @@
 import { ISecretScanner } from '../../core/interfaces/ISecretScanner';
-import { SecretScanner } from '../../utils/secret-scanner/SecretScanner';
+import { SecretScanner } from './secret-scanner/SecretScanner';
 import * as vscode from 'vscode';
-import { HardcodedSecret } from '../../utils/secret-scanner/types';
+import { HardcodedSecret } from './secret-scanner/types';
 
 /**
  * Adapter: Adapts SecretScanner to ISecretScanner interface

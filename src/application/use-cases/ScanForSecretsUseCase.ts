@@ -1,7 +1,7 @@
 import { ISecretScanner } from '../../core/interfaces/ISecretScanner';
 import { ScanResult } from '../../domain/entities/ScanResult';
 import { HardcodedSecret } from '../../domain/entities/HardcodedSecret';
-import { HardcodedSecret as OldHardcodedSecret } from '../../utils/secret-scanner/types';
+import { HardcodedSecret as OldHardcodedSecret } from '../../infrastructure/scanners/secret-scanner/types';
 import { logger } from '../../utils/logger';
 
 /**

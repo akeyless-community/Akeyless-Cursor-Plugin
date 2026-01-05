@@ -1,6 +1,6 @@
 import { IScanningStrategy } from './IScanningStrategy';
 import { ISecretScanner } from '../../../core/interfaces/ISecretScanner';
-import { HardcodedSecret } from '../../../utils/secret-scanner/types';
+import { HardcodedSecret } from '../secret-scanner/types';
 
 /**
  * Workspace Scanning Strategy

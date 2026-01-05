@@ -3,7 +3,7 @@ import { HardcodedSecret } from '../../domain/entities/HardcodedSecret';
 import { logger } from '../../utils/logger';
 
 // Import the old type for compatibility
-import { HardcodedSecret as OldHardcodedSecret } from '../../utils/secret-scanner/types';
+import { HardcodedSecret as OldHardcodedSecret } from '../../infrastructure/scanners/secret-scanner/types';
 
 type SecretType = HardcodedSecret | OldHardcodedSecret;
 

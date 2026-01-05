@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { HardcodedSecret } from '../../utils/secret-scanner/types';
+import { HardcodedSecret } from '../../infrastructure/scanners/secret-scanner/types';
 
 /**
  * Interface for secret scanning operations

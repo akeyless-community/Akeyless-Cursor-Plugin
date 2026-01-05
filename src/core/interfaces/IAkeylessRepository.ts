@@ -36,3 +36,4 @@ export interface IAkeylessRepository {
     searchSecrets(pattern: string): Promise<AkeylessItem[]>;
 }
 
+

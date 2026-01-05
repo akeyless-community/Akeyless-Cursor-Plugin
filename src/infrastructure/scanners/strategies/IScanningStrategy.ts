@@ -1,4 +1,4 @@
-import { HardcodedSecret } from '../../../utils/secret-scanner/types';
+import { HardcodedSecret } from '../secret-scanner/types';
 
 /**
  * Scanning Strategy Interface

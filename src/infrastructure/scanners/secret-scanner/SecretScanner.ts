@@ -4,7 +4,7 @@ import { PatternRegistry } from './PatternRegistry';
 import { ScannerConfigManager } from './utils/ScannerConfig';
 import { FalsePositiveFilter } from './utils/FalsePositiveFilter';
 import { EnhancedEntropyAnalyzer } from './utils/EnhancedEntropyAnalyzer';
-import { logger } from '../logger';
+import { logger } from '../../../utils/logger';
 
 /**
  * Main secret scanner class
