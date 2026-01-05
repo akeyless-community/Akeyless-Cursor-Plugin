@@ -423,6 +423,12 @@ export class ScanResultsWebviewManager {
                         <button class="copy-button" data-value="${this.escapeHtml(secret.value)}">Copy</button>
                         <div class="secret-value-text">${this.escapeHtml(truncatedValue)}</div>
                     </div>
+                    ${secret.detectionReason ? `
+                        <div class="secret-detection-reason">
+                            <strong>Detection Reason:</strong><br>
+                            ${this.escapeHtml(secret.detectionReason).replace(/\n/g, '<br>')}
+                        </div>
+                    ` : ''}
                     ${secret.context ? `
                         <div class="secret-context">
                             <strong>Context:</strong> ${this.escapeHtml(secret.context)}

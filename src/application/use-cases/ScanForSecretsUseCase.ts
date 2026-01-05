@@ -68,7 +68,8 @@ export class ScanForSecretsUseCase {
             secret.column,
             secret.value,
             secret.type,
-            secret.context
+            secret.context,
+            secret.detectionReason
         );
     }
 }

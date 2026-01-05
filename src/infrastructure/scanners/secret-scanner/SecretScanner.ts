@@ -130,7 +130,8 @@ export class SecretScanner {
                         column,
                         value,
                         type: pattern.suggestion,
-                        context
+                        context,
+                        detectionReason: `Pattern match: ${pattern.name} (${pattern.confidence} confidence)\nPattern: ${pattern.pattern.source}`
                     });
 
                     // Prevent infinite loop if regex doesn't advance
@@ -190,7 +191,8 @@ export class SecretScanner {
                             column,
                             value,
                             type: pattern.suggestion,
-                            context
+                            context,
+                            detectionReason: `Pattern match: ${pattern.name} (${pattern.confidence} confidence)\nPattern: ${pattern.pattern.source}`
                         });
 
                         // Prevent infinite loop if regex doesn't advance
@@ -350,7 +352,8 @@ export class SecretScanner {
                             type: 'High Entropy Secret',
                             context: line.trim(),
                             confidence: Math.min(0.6 + (entropyScore - minEntropy) * 0.5, 0.9),
-                            entropy: entropyScore
+                            entropy: entropyScore,
+                            detectionReason: `High entropy string (entropy: ${entropyScore.toFixed(2)}, threshold: ${minEntropy})`
                         });
 
                         detectedValues.add(valueLower);

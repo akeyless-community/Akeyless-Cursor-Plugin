@@ -11,6 +11,7 @@ export interface HardcodedSecret {
     context: string;
     confidence?: number; // 0.0 to 1.0
     entropy?: number;
+    detectionReason?: string; // Why this secret was flagged (e.g., "Pattern match: API Key", "High entropy string")
 }
 
 export interface SecretPattern {

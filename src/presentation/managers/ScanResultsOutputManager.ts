@@ -55,6 +55,18 @@ export class ScanResultsOutputManager {
                     this.outputChannel.appendLine(`   ├─ File: ${relativePath}`);
                     this.outputChannel.appendLine(`   ├─ Location: Line ${secret.lineNumber}, Column ${secret.column}`);
                     
+                    // Show detection reason (handle multiline with proper formatting)
+                    if (secret.detectionReason) {
+                        const reasonLines = secret.detectionReason.split('\n');
+                        reasonLines.forEach((line, idx) => {
+                            if (idx === 0) {
+                                this.outputChannel.appendLine(`   ├─ Detection Reason: ${line}`);
+                            } else {
+                                this.outputChannel.appendLine(`   │  ${line}`);
+                            }
+                        });
+                    }
+                    
                     // Show truncated value
                     const maxValueLength = 80;
                     const truncatedValue = secret.value.length > maxValueLength 

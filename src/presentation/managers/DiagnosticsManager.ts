@@ -57,8 +57,13 @@ export class DiagnosticsManager {
                     // Generate Akeyless-specific diagnostic message with implementation guidance
                     const suggestion = generateAkeylessDiagnosticMessage(secret.type, secret.fileName);
                     
+                    // Get detection reason if available
+                    const detectionReason = 'detectionReason' in secret && secret.detectionReason 
+                        ? `\n\nDetection Reason: ${secret.detectionReason}` 
+                        : '';
+                    
                     // Create a comprehensive message with implementation guidance
-                    const fullMessage = `${suggestion.message}\n\nImplementation:\n${suggestion.implementation}\n\nDocs: ${suggestion.documentation}`;
+                    const fullMessage = `${suggestion.message}${detectionReason}\n\nImplementation:\n${suggestion.implementation}\n\nDocs: ${suggestion.documentation}`;
                     
                     const diagnostic = new vscode.Diagnostic(
                         range,

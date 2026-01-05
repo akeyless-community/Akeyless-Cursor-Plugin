@@ -9,7 +9,8 @@ export class HardcodedSecret {
         public readonly column: number,
         public readonly value: string,
         public readonly type: string,
-        public readonly context: string
+        public readonly context: string,
+        public readonly detectionReason?: string
     ) {}
 
     /**
