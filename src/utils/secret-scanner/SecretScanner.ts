@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { HardcodedSecret, ScannerConfig } from './types';
 import { PatternRegistry } from './PatternRegistry';
 import { ScannerConfigManager } from './utils/ScannerConfig';
+import { FalsePositiveFilter } from './utils/FalsePositiveFilter';
+import { EnhancedEntropyAnalyzer } from './utils/EnhancedEntropyAnalyzer';
 import { logger } from '../logger';
 
 /**
@@ -11,6 +13,7 @@ import { logger } from '../logger';
 export class SecretScanner {
     private readonly patternRegistry: PatternRegistry;
     private configManager: ScannerConfigManager;
+    private falsePositiveFilter: FalsePositiveFilter;
 
     constructor(
         patternRegistry?: PatternRegistry,
@@ -18,6 +21,7 @@ export class SecretScanner {
     ) {
         this.configManager = configManager || ScannerConfigManager.default();
         this.patternRegistry = patternRegistry || new PatternRegistry();
+        this.falsePositiveFilter = new FalsePositiveFilter(this.configManager.get());
     }
 
     /**
@@ -95,7 +99,15 @@ export class SecretScanner {
 
                 while ((match = regex.exec(fullText)) !== null && iterations < maxIterations) {
                     iterations++;
-                    const value = match[1] || match[0];
+                    // For patterns with multiple capture groups, prefer the last non-empty group (usually the value)
+                    // This handles cases like: export VAR_NAME="value" where match[1] is VAR_NAME and match[2] is value
+                    let value = match[0];
+                    for (let i = match.length - 1; i >= 1; i--) {
+                        if (match[i] && match[i].trim()) {
+                            value = match[i];
+                            break;
+                        }
+                    }
                     
                     // Calculate line number from match position
                     const textBeforeMatch = fullText.substring(0, match.index);
@@ -106,9 +118,13 @@ export class SecretScanner {
                         ? fullText.substring(lineStart, nextNewline)
                         : fullText.substring(lineStart);
                     
-                    // Calculate column position
-                    const valueStart = match.index - lineStart;
-                    const column = valueStart + 1;
+                    // Calculate column position - find where the value actually starts in the line
+                    let valueStart = match.index;
+                    const valueIndexInMatch = match[0].indexOf(value);
+                    if (valueIndexInMatch >= 0) {
+                        valueStart = match.index + valueIndexInMatch;
+                    }
+                    const column = valueStart - lineStart + 1;
                     const context = line.trim();
 
                     secrets.push({
@@ -151,14 +167,21 @@ export class SecretScanner {
 
                     while ((match = regex.exec(line)) !== null && iterations < maxIterations) {
                         iterations++;
-                        const value = match[1] || match[0];
+                        // For patterns with multiple capture groups, prefer the last non-empty group (usually the value)
+                        // This handles cases like: export VAR_NAME="value" where match[1] is VAR_NAME and match[2] is value
+                        let value = match[0];
+                        for (let i = match.length - 1; i >= 1; i--) {
+                            if (match[i] && match[i].trim()) {
+                                value = match[i];
+                                break;
+                            }
+                        }
 
                         // Calculate the actual range of the value in the line
                         let valueStart = match.index;
-
-                        // If we have a capture group, adjust the range to the captured value
-                        if (match[1]) {
-                            valueStart = match.index + match[0].indexOf(match[1]);
+                        const valueIndexInMatch = match[0].indexOf(value);
+                        if (valueIndexInMatch >= 0) {
+                            valueStart = match.index + valueIndexInMatch;
                         }
 
                         const column = valueStart + 1;
@@ -185,7 +208,166 @@ export class SecretScanner {
             }
         }
 
-        return secrets;
+        // Entropy-based detection for high-entropy strings that don't match specific patterns
+        // This catches secrets that don't have known patterns
+        if (this.configManager.get().minEntropy > 0) {
+            const entropySecrets = this.detectHighEntropySecrets(lines, document.fileName, secrets);
+            secrets.push(...entropySecrets);
+        }
+
+        // Deduplicate secrets - same value at same location should only appear once
+        const deduplicatedSecrets = this.deduplicateSecrets(secrets);
+        logger.debug(`Deduplicated ${secrets.length} detected secrets to ${deduplicatedSecrets.length}`);
+
+        // Apply false positive filtering
+        const filteredSecrets = this.falsePositiveFilter.filter(deduplicatedSecrets);
+        
+        logger.debug(`Filtered ${deduplicatedSecrets.length} detected secrets to ${filteredSecrets.length} after false positive filtering`);
+        
+        return filteredSecrets;
+    }
+
+    /**
+     * Deduplicates secrets - removes duplicates where the same value is detected at the same location
+     * Prefers higher confidence classifications and removes redundant detections
+     */
+    private deduplicateSecrets(secrets: HardcodedSecret[]): HardcodedSecret[] {
+        const seen = new Map<string, HardcodedSecret>();
+        const confidenceOrder: { [key: string]: number } = {
+            'high': 3,
+            'medium': 2,
+            'low': 1
+        };
+
+        for (const secret of secrets) {
+            // Create a unique key based on file, line, column, and value
+            const key = `${secret.fileName}:${secret.lineNumber}:${secret.column}:${secret.value.toLowerCase()}`;
+            
+            const existing = seen.get(key);
+            if (!existing) {
+                seen.set(key, secret);
+            } else {
+                // If we've seen this before, keep the one with higher confidence or more specific type
+                const existingConfidence = confidenceOrder[existing.type.toLowerCase().includes('high') ? 'high' : 
+                    existing.type.toLowerCase().includes('medium') ? 'medium' : 'low'] || 1;
+                const newConfidence = confidenceOrder[secret.type.toLowerCase().includes('high') ? 'high' : 
+                    secret.type.toLowerCase().includes('medium') ? 'medium' : 'low'] || 1;
+                
+                // Prefer more specific types (e.g., "Google API Key" over "API Key")
+                const existingSpecificity = existing.type.split(' ').length;
+                const newSpecificity = secret.type.split(' ').length;
+                
+                if (newConfidence > existingConfidence || 
+                    (newConfidence === existingConfidence && newSpecificity > existingSpecificity) ||
+                    (newConfidence === existingConfidence && newSpecificity === existingSpecificity && 
+                     secret.type.length > existing.type.length)) {
+                    seen.set(key, secret);
+                }
+            }
+        }
+
+        // Also remove duplicates where the same value appears multiple times with different types
+        // but at overlapping positions (e.g., "Token" and "Twilio Auth Token" for same value)
+        const valueMap = new Map<string, HardcodedSecret[]>();
+        for (const secret of Array.from(seen.values())) {
+            const _valueKey = `${secret.fileName}:${secret.lineNumber}:${secret.value.toLowerCase()}`;
+            if (!valueMap.has(_valueKey)) {
+                valueMap.set(_valueKey, []);
+            }
+            valueMap.get(_valueKey)!.push(secret);
+        }
+
+        const finalSecrets: HardcodedSecret[] = [];
+        for (const [_valueKey, duplicates] of valueMap.entries()) {
+            if (duplicates.length === 1) {
+                finalSecrets.push(duplicates[0]);
+            } else {
+                // Multiple detections of same value at same location - keep the most specific
+                duplicates.sort((a, b) => {
+                    const aSpecificity = a.type.split(' ').length;
+                    const bSpecificity = b.type.split(' ').length;
+                    if (aSpecificity !== bSpecificity) {
+                        return bSpecificity - aSpecificity; // More specific first
+                    }
+                    // Prefer types that don't include generic terms
+                    const aIsGeneric = /^(token|secret|key|api[_-]?key)$/i.test(a.type);
+                    const bIsGeneric = /^(token|secret|key|api[_-]?key)$/i.test(b.type);
+                    if (aIsGeneric && !bIsGeneric) return 1;
+                    if (!aIsGeneric && bIsGeneric) return -1;
+                    return 0;
+                });
+                finalSecrets.push(duplicates[0]);
+            }
+        }
+
+        return finalSecrets;
+    }
+
+    /**
+     * Detects high-entropy strings that might be secrets but don't match specific patterns
+     * Scans for strings in common secret variable contexts with high entropy
+     */
+    private detectHighEntropySecrets(
+        lines: string[],
+        fileName: string,
+        existingSecrets: HardcodedSecret[]
+    ): HardcodedSecret[] {
+        const entropySecrets: HardcodedSecret[] = [];
+        const config = this.configManager.get();
+        const minEntropy = config.minEntropy;
+
+        // Pattern to find potential secret assignments
+        // Matches: key = "value", secret: "value", password="value", etc.
+        const secretAssignmentPattern = /(?:secret|key|token|password|auth|api[_-]?key|access[_-]?token|private[_-]?key|credential|passwd|pwd)\s*[:=]\s*["']([^"']{16,})["']/gi;
+
+        // Track already detected values to avoid duplicates
+        const detectedValues = new Set(existingSecrets.map(s => s.value.toLowerCase()));
+
+        for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+            const line = lines[lineIndex];
+            const lineNumber = lineIndex + 1;
+
+            // Skip if line is a comment
+            if (/^\s*(\/\/|\/\*|#|<!--)/.test(line.trim())) {
+                continue;
+            }
+
+            let match;
+            while ((match = secretAssignmentPattern.exec(line)) !== null) {
+                const value = match[1];
+                const valueLower = value.toLowerCase();
+
+                // Skip if already detected by pattern matching
+                if (detectedValues.has(valueLower)) {
+                    continue;
+                }
+
+                // Check entropy
+                const entropyScore = EnhancedEntropyAnalyzer.calculateEntropyScore(value);
+                
+                if (entropyScore >= minEntropy) {
+                    // Additional validation: should look like a secret
+                    if (EnhancedEntropyAnalyzer.isHighEntropy(value, 0.5)) {
+                        const column = match.index + match[0].indexOf(match[1]) + 1;
+                        
+                        entropySecrets.push({
+                            fileName,
+                            lineNumber,
+                            column,
+                            value,
+                            type: 'High Entropy Secret',
+                            context: line.trim(),
+                            confidence: Math.min(0.6 + (entropyScore - minEntropy) * 0.5, 0.9),
+                            entropy: entropyScore
+                        });
+
+                        detectedValues.add(valueLower);
+                    }
+                }
+            }
+        }
+
+        return entropySecrets;
     }
 
     /**
@@ -329,6 +511,7 @@ export class SecretScanner {
         }
 
         this.configManager = this.configManager.with(updates);
+        this.falsePositiveFilter.updateConfig(this.configManager.get());
 
         logger.info('Scanner configuration updated:', this.configManager.get());
     }

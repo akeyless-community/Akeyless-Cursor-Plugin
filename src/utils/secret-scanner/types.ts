@@ -9,6 +9,10 @@ export interface HardcodedSecret {
     value: string;
     type: string;
     context: string;
+    confidence?: number; // 0.0 to 1.0
+    entropy?: number;
+    isFalsePositive?: boolean;
+    filterReason?: string;
 }
 
 export interface SecretPattern {
