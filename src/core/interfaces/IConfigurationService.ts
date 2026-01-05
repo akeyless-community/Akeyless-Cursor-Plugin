@@ -22,10 +22,9 @@ export interface IConfigurationService {
      * Gets scanner configuration
      */
     getScannerConfig(): {
-        developmentMode: boolean;
         minEntropy: number;
-        skipDevelopmentValues: boolean;
     };
 }
+
 
 

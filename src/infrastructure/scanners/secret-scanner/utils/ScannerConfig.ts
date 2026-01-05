@@ -9,9 +9,7 @@ export class ScannerConfigManager {
 
     constructor(config?: Partial<ScannerConfig>) {
         this.config = {
-            developmentMode: config?.developmentMode ?? true,
             minEntropy: config?.minEntropy ?? 4.0,
-            skipDevelopmentValues: config?.skipDevelopmentValues ?? true,
             entropyThresholds: {
                 apiKey: config?.entropyThresholds?.apiKey ?? 3.5,
                 password: config?.entropyThresholds?.password ?? 3.0,

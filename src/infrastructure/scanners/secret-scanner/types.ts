@@ -11,8 +11,6 @@ export interface HardcodedSecret {
     context: string;
     confidence?: number; // 0.0 to 1.0
     entropy?: number;
-    isFalsePositive?: boolean;
-    filterReason?: string;
 }
 
 export interface SecretPattern {
@@ -23,9 +21,7 @@ export interface SecretPattern {
 }
 
 export interface ScannerConfig {
-    developmentMode: boolean;
     minEntropy: number;
-    skipDevelopmentValues: boolean;
     entropyThresholds: {
         apiKey: number;
         password: number;

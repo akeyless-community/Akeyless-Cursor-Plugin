@@ -34,9 +34,7 @@ export class SecretScannerAdapter implements ISecretScanner {
      * Configures the scanner
      */
     configure(options: {
-        developmentMode?: boolean;
         minEntropy?: number;
-        skipDevelopmentValues?: boolean;
     }): void {
         this.scanner.configure(options);
     }

@@ -35,14 +35,10 @@ export class ConfigurationService implements IConfigurationService {
     }
 
     getScannerConfig(): {
-        developmentMode: boolean;
         minEntropy: number;
-        skipDevelopmentValues: boolean;
     } {
         return {
-            developmentMode: this.get<boolean>('scanner.developmentMode', true),
             minEntropy: this.get<number>('scanner.minEntropy', 3.0),
-            skipDevelopmentValues: this.get<boolean>('scanner.skipDevelopmentValues', true),
         };
     }
 }

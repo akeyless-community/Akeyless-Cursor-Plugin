@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { HardcodedSecret, ScannerConfig } from './types';
 import { PatternRegistry } from './PatternRegistry';
 import { ScannerConfigManager } from './utils/ScannerConfig';
-import { FalsePositiveFilter } from './utils/FalsePositiveFilter';
 import { EnhancedEntropyAnalyzer } from './utils/EnhancedEntropyAnalyzer';
 import { logger } from '../../../utils/logger';
 
@@ -13,7 +12,6 @@ import { logger } from '../../../utils/logger';
 export class SecretScanner {
     private readonly patternRegistry: PatternRegistry;
     private configManager: ScannerConfigManager;
-    private falsePositiveFilter: FalsePositiveFilter;
 
     constructor(
         patternRegistry?: PatternRegistry,
@@ -21,7 +19,6 @@ export class SecretScanner {
     ) {
         this.configManager = configManager || ScannerConfigManager.default();
         this.patternRegistry = patternRegistry || new PatternRegistry();
-        this.falsePositiveFilter = new FalsePositiveFilter(this.configManager.get());
     }
 
     /**
@@ -218,13 +215,8 @@ export class SecretScanner {
         // Deduplicate secrets - same value at same location should only appear once
         const deduplicatedSecrets = this.deduplicateSecrets(secrets);
         logger.debug(`Deduplicated ${secrets.length} detected secrets to ${deduplicatedSecrets.length}`);
-
-        // Apply false positive filtering
-        const filteredSecrets = this.falsePositiveFilter.filter(deduplicatedSecrets);
         
-        logger.debug(`Filtered ${deduplicatedSecrets.length} detected secrets to ${filteredSecrets.length} after false positive filtering`);
-        
-        return filteredSecrets;
+        return deduplicatedSecrets;
     }
 
     /**
@@ -494,24 +486,15 @@ export class SecretScanner {
      * Configures the scanner behavior
      */
     configure(options: {
-        developmentMode?: boolean;
         minEntropy?: number;
-        skipDevelopmentValues?: boolean;
     }): void {
         const updates: Partial<ScannerConfig> = {};
 
-        if (options.developmentMode !== undefined) {
-            updates.developmentMode = options.developmentMode;
-        }
         if (options.minEntropy !== undefined) {
             updates.minEntropy = options.minEntropy;
         }
-        if (options.skipDevelopmentValues !== undefined) {
-            updates.skipDevelopmentValues = options.skipDevelopmentValues;
-        }
 
         this.configManager = this.configManager.with(updates);
-        this.falsePositiveFilter.updateConfig(this.configManager.get());
 
         logger.info('Scanner configuration updated:', this.configManager.get());
     }
@@ -566,9 +549,7 @@ export class SecretScanner {
     }
 
     static configure(options: {
-        developmentMode?: boolean;
         minEntropy?: number;
-        skipDevelopmentValues?: boolean;
     }): void {
         SecretScanner.getDefaultInstance().configure(options);
     }
