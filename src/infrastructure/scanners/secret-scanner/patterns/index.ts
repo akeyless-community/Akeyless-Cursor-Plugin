@@ -2059,7 +2059,9 @@ export const SECRET_PATTERNS: SecretPattern[] = [
     },
     {
         name: 'Airtable Personal Access Token',
-        pattern: /pat[a-zA-Z0-9\-_]{17}/g,
+        // More specific: require exactly "pat" + 17 alphanumeric chars (no underscore/hyphen)
+        // Real Airtable PATs are typically patXXXXXXXXXXXXXXXXX (exactly 20 chars total)
+        pattern: /\bpat[A-Za-z0-9]{17}\b/g,
         suggestion: 'Airtable Personal Access Token',
         confidence: 'high'
     },
@@ -2071,7 +2073,8 @@ export const SECRET_PATTERNS: SecretPattern[] = [
     },
     {
         name: 'Notion Integration Token',
-        pattern: /secret_[a-zA-Z0-9\-_]{32,}/g,
+        // More specific: require word boundary to avoid matching variable names like "secret_handler_v2"
+        pattern: /\bsecret_[a-zA-Z0-9]{32,}\b/g,
         suggestion: 'Notion Integration Token',
         confidence: 'high'
     },

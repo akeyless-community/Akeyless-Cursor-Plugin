@@ -42,14 +42,32 @@ export class ScannerConfigManager {
                         'placeholder',
                         'mock',
                         'stub',
-                        'localhost',
-                        'path',
-                        'proto',
-                        'handler'
+                        'localhost'
                     ],
                     regexes: config?.filters?.denylist?.regexes ?? [
                         // Common placeholder patterns
                         '/^(?:your|insert|replace|change)[\\s_-]*(?:api[_-]?key|token|secret|password)$/i'
+                    ]
+                },
+                /**
+                 * Code-pattern denylist: filters out common code patterns that look like secrets
+                 * but are actually variable names, function names, etc.
+                 */
+                codePatternDenylist: {
+                    enabled: config?.filters?.codePatternDenylist?.enabled ?? true,
+                    caseInsensitive: config?.filters?.codePatternDenylist?.caseInsensitive ?? true,
+                    substrings: config?.filters?.codePatternDenylist?.substrings ?? [
+                        'path',
+                        'Path',
+                        'patch',
+                        'proto',
+                        'handler',
+                        'test',
+                        'example',
+                        'dummy',
+                        'mock',
+                        'stub',
+                        'localhost'
                     ]
                 },
                 functionCall: {
@@ -77,7 +95,8 @@ export class ScannerConfigManager {
                     substrings: config?.filters?.filename?.substrings ?? [
                         '_test.',
                         'testdata',
-                        'mock'
+                        'mock',
+                        'fixture'
                     ],
                     suffixes: config?.filters?.filename?.suffixes ?? [
                         '.pb.go'
@@ -132,6 +151,10 @@ export class ScannerConfigManager {
                 filename: {
                     ...this.config.filters.filename,
                     ...(updates.filters?.filename ?? {})
+                },
+                codePatternDenylist: {
+                    ...this.config.filters.codePatternDenylist,
+                    ...(updates.filters?.codePatternDenylist ?? {})
                 }
             }
         });

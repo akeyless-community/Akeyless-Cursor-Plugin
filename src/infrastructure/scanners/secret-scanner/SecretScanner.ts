@@ -181,6 +181,11 @@ export class SecretScanner {
                     const column = valueStart - lineStart + 1;
                     const context = line.trim();
 
+                    // Apply pre-filtering: context-aware filtering and code-pattern denylist
+                    if (this.shouldSkipDetection(value, context, pattern, document.fileName)) {
+                        continue;
+                    }
+
                     secrets.push({
                         fileName: document.fileName,
                         lineNumber,
@@ -242,6 +247,11 @@ export class SecretScanner {
 
                         const column = valueStart + 1;
                         const context = line.trim();
+
+                        // Apply pre-filtering: context-aware filtering and code-pattern denylist
+                        if (this.shouldSkipDetection(value, context, pattern, document.fileName)) {
+                            continue;
+                        }
 
                         secrets.push({
                             fileName: document.fileName,
@@ -435,6 +445,112 @@ export class SecretScanner {
         if (secret.patternConfidence === 'high') return true;
         // Backward compatible: parse from detectionReason if present
         return /\(high confidence\)/i.test(secret.detectionReason ?? '');
+    }
+
+    /**
+     * Pre-filtering: checks if a detection should be skipped before adding to results
+     * Applies context-aware filtering, code-pattern denylist, and minimum length requirements
+     */
+    private shouldSkipDetection(
+        value: string,
+        context: string,
+        pattern: { name: string; confidence: 'high' | 'medium' },
+        fileName: string
+    ): boolean {
+        const cfg = this.configManager.get().filters;
+
+        // Always allow high-confidence patterns (unless explicitly disabled)
+        if (cfg.highConfidenceBypass && pattern.confidence === 'high') {
+            // But still check code-pattern denylist for high-confidence patterns
+            // (except for very specific patterns like PEM keys, Stripe keys, etc.)
+            if (cfg.codePatternDenylist.enabled && this.matchesCodePatternDenylist(value)) {
+                // Special case: Airtable PAT needs context check even if high-confidence
+                if (pattern.name === 'Airtable Personal Access Token') {
+                    if (!this.hasSecretContext(context, ['airtable', 'token', 'secret', 'key', 'api', 'pat'])) {
+                        return true;
+                    }
+                }
+                // For other high-confidence patterns, only filter if it's clearly a code pattern
+                // (e.g., "path", "patch", "proto", "handler" in the value itself)
+                if (this.matchesCodePatternDenylist(value)) {
+                    return true;
+                }
+            }
+        }
+
+        // Code-pattern denylist: skip if value contains common code patterns
+        if (cfg.codePatternDenylist.enabled && this.matchesCodePatternDenylist(value)) {
+            // For medium/low confidence, always skip
+            if (pattern.confidence !== 'high') {
+                return true;
+            }
+            // For high-confidence, only skip if no secret context
+            if (!this.hasSecretContext(context, ['airtable', 'token', 'secret', 'key', 'api', 'pat', 'password', 'auth'])) {
+                return true;
+            }
+        }
+
+        // Context-aware filtering for Airtable PAT
+        if (pattern.name === 'Airtable Personal Access Token') {
+            if (!this.hasSecretContext(context, ['airtable', 'token', 'secret', 'key', 'api', 'pat'])) {
+                return true;
+            }
+        }
+
+        // Context-aware filtering for Notion Integration Token
+        if (pattern.name === 'Notion Integration Token') {
+            if (!this.hasSecretContext(context, ['notion', 'token', 'secret', 'key', 'api', 'integration'])) {
+                return true;
+            }
+        }
+
+        // Minimum length requirements for medium/low confidence patterns
+        if (pattern.confidence !== 'high') {
+            // Require minimum length of 25 for medium/low confidence patterns
+            if (value.length < 25) {
+                return true;
+            }
+        }
+
+        // Character diversity check for longer strings
+        if (value.length > 30) {
+            const uniqueChars = new Set(value).size;
+            // Require at least 20 unique characters for strings longer than 30
+            if (uniqueChars < 20) {
+                // But allow if it's high-confidence and has good context
+                if (pattern.confidence !== 'high' || !this.hasSecretContext(context, ['token', 'secret', 'key', 'api', 'password', 'auth'])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks if a value matches the code-pattern denylist
+     */
+    private matchesCodePatternDenylist(value: string): boolean {
+        const cfg = this.configManager.get().filters.codePatternDenylist;
+        if (!cfg.enabled) return false;
+
+        const haystack = cfg.caseInsensitive ? value.toLowerCase() : value;
+        for (const entry of cfg.substrings) {
+            if (!entry) continue;
+            const needle = cfg.caseInsensitive ? entry.toLowerCase() : entry;
+            if (needle && haystack.includes(needle)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks if context contains any of the secret-related keywords
+     */
+    private hasSecretContext(context: string, keywords: string[]): boolean {
+        const contextLower = context.toLowerCase();
+        return keywords.some(keyword => contextLower.includes(keyword.toLowerCase()));
     }
 
     private getDenylistRegexes(): RegExp[] {

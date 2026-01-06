@@ -89,6 +89,15 @@ export interface ScannerConfig {
              */
             suffixes: string[];
         };
+        /**
+         * Code-pattern denylist: filters out common code patterns that look like secrets
+         * but are actually variable names, function names, etc. (e.g., "path", "patch", "proto", "handler")
+         */
+        codePatternDenylist: {
+            enabled: boolean;
+            caseInsensitive: boolean;
+            substrings: string[];
+        };
     };
 }
 
