@@ -15,18 +15,52 @@ export class SecretScannerAdapter implements ISecretScanner {
     }
 
     async scanDocument(document: vscode.TextDocument): Promise<HardcodedSecret[]> {
-        return this.scanner.scanDocument(document);
+        const result = await this.scanner.scanDocument(document);
+        return result.secrets;
     }
 
-    async scanWorkspace(): Promise<{ results: Map<string, HardcodedSecret[]>, totalFilesScanned: number }> {
+    async scanWorkspace(): Promise<{
+        results: Map<string, HardcodedSecret[]>;
+        totalFilesScanned: number;
+        filteredSecretsCount: number;
+        filteredByFilename: number;
+        filteredByDenylist: number;
+        filteredByFunctionCall: number;
+        filteredByTestData: number;
+        filteredByStricterEntropy: number;
+        entropyThreshold: number;
+        nonBase64EntropyDelta: number;
+    }> {
         return this.scanner.scanWorkspace();
     }
 
-    async scanCurrentFile(): Promise<{ results: Map<string, HardcodedSecret[]>, totalFilesScanned: number }> {
+    async scanCurrentFile(): Promise<{
+        results: Map<string, HardcodedSecret[]>;
+        totalFilesScanned: number;
+        filteredSecretsCount: number;
+        filteredByFilename: number;
+        filteredByDenylist: number;
+        filteredByFunctionCall: number;
+        filteredByTestData: number;
+        filteredByStricterEntropy: number;
+        entropyThreshold: number;
+        nonBase64EntropyDelta: number;
+    }> {
         return this.scanner.scanCurrentFile();
     }
 
-    async scanCurrentProject(): Promise<{ results: Map<string, HardcodedSecret[]>, totalFilesScanned: number }> {
+    async scanCurrentProject(): Promise<{
+        results: Map<string, HardcodedSecret[]>;
+        totalFilesScanned: number;
+        filteredSecretsCount: number;
+        filteredByFilename: number;
+        filteredByDenylist: number;
+        filteredByFunctionCall: number;
+        filteredByTestData: number;
+        filteredByStricterEntropy: number;
+        entropyThreshold: number;
+        nonBase64EntropyDelta: number;
+    }> {
         return this.scanner.scanCurrentProject();
     }
 
@@ -35,6 +69,7 @@ export class SecretScannerAdapter implements ISecretScanner {
      */
     configure(options: {
         minEntropy?: number;
+        filters?: any;
     }): void {
         this.scanner.configure(options);
     }

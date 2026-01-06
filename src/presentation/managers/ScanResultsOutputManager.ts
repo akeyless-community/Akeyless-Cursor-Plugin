@@ -28,6 +28,32 @@ export class ScanResultsOutputManager {
         this.outputChannel.appendLine(`Files Scanned: ${scanResult.totalFilesScanned}`);
         this.outputChannel.appendLine(`Total Secrets Found: ${scanResult.getTotalSecrets()}`);
         this.outputChannel.appendLine(`Files with Secrets: ${scanResult.getSecretsByFile().size}`);
+        
+        // Add entropy filtering note (always show if threshold is set, or if secrets were filtered)
+        if (scanResult.entropyThreshold > 0) {
+            if (scanResult.filteredSecretsCount > 0) {
+                this.outputChannel.appendLine(`Filtered Low-Entropy Secrets: ${scanResult.filteredSecretsCount}`);
+            }
+            if (scanResult.filteredByStricterEntropy > 0) {
+                this.outputChannel.appendLine(
+                    `Filtered by Stricter Entropy (non-base64 Δ=${scanResult.nonBase64EntropyDelta}): ${scanResult.filteredByStricterEntropy}`
+                );
+            }
+            if (scanResult.filteredByFilename > 0) {
+                this.outputChannel.appendLine(`Filtered by Filename Rules: ${scanResult.filteredByFilename}`);
+            }
+            if (scanResult.filteredByDenylist > 0) {
+                this.outputChannel.appendLine(`Filtered by Denylist: ${scanResult.filteredByDenylist}`);
+            }
+            if (scanResult.filteredByFunctionCall > 0) {
+                this.outputChannel.appendLine(`Filtered as Function Calls: ${scanResult.filteredByFunctionCall}`);
+            }
+            if (scanResult.filteredByTestData > 0) {
+                this.outputChannel.appendLine(`Filtered as Test/Example Data: ${scanResult.filteredByTestData}`);
+            }
+            this.outputChannel.appendLine(`Applied entropy filtering (threshold: ${scanResult.entropyThreshold}) to reduce false positives from paths, URLs, and model names.`);
+        }
+        
         this.outputChannel.appendLine('');
 
         if (!scanResult.hasSecrets()) {

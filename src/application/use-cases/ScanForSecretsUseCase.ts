@@ -28,7 +28,19 @@ export class ScanForSecretsUseCase {
                 }
             }
             
-            return new ScanResult(secrets, result.totalFilesScanned);
+            return new ScanResult(
+                secrets, 
+                result.totalFilesScanned,
+                new Date(),
+                result.filteredSecretsCount,
+                result.entropyThreshold,
+                result.filteredByFilename,
+                result.filteredByDenylist,
+                result.filteredByFunctionCall,
+                result.filteredByTestData,
+                result.filteredByStricterEntropy,
+                result.nonBase64EntropyDelta
+            );
         } catch (error) {
             logger.error(' Error in scan for secrets use case:', error);
             throw error;
@@ -51,7 +63,19 @@ export class ScanForSecretsUseCase {
                 }
             }
             
-            return new ScanResult(secrets, result.totalFilesScanned);
+            return new ScanResult(
+                secrets, 
+                result.totalFilesScanned,
+                new Date(),
+                result.filteredSecretsCount,
+                result.entropyThreshold,
+                result.filteredByFilename,
+                result.filteredByDenylist,
+                result.filteredByFunctionCall,
+                result.filteredByTestData,
+                result.filteredByStricterEntropy,
+                result.nonBase64EntropyDelta
+            );
         } catch (error) {
             logger.error(' Error in single file scan use case:', error);
             throw error;

@@ -23,6 +23,32 @@ export interface IConfigurationService {
      */
     getScannerConfig(): {
         minEntropy: number;
+        filters?: {
+            highConfidenceBypass?: boolean;
+            denylist?: {
+                enabled?: boolean;
+                caseInsensitiveSubstrings?: boolean;
+                substrings?: string[];
+                regexes?: string[];
+            };
+            functionCall?: {
+                enabled?: boolean;
+            };
+            testData?: {
+                enabled?: boolean;
+                substrings?: string[];
+            };
+            entropy?: {
+                nonBase64Delta?: number;
+                applyNonBase64Delta?: boolean;
+            };
+            filename?: {
+                enabled?: boolean;
+                caseInsensitive?: boolean;
+                substrings?: string[];
+                suffixes?: string[];
+            };
+        };
     };
 }
 

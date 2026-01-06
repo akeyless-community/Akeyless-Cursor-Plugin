@@ -14,16 +14,49 @@ export interface ISecretScanner {
     /**
      * Scans the entire workspace
      */
-    scanWorkspace(): Promise<{ results: Map<string, HardcodedSecret[]>, totalFilesScanned: number }>;
+    scanWorkspace(): Promise<{
+        results: Map<string, HardcodedSecret[]>;
+        totalFilesScanned: number;
+        filteredSecretsCount: number;
+        filteredByFilename: number;
+        filteredByDenylist: number;
+        filteredByFunctionCall: number;
+        filteredByTestData: number;
+        filteredByStricterEntropy: number;
+        entropyThreshold: number;
+        nonBase64EntropyDelta: number;
+    }>;
 
     /**
      * Scans only the current active file
      */
-    scanCurrentFile(): Promise<{ results: Map<string, HardcodedSecret[]>, totalFilesScanned: number }>;
+    scanCurrentFile(): Promise<{
+        results: Map<string, HardcodedSecret[]>;
+        totalFilesScanned: number;
+        filteredSecretsCount: number;
+        filteredByFilename: number;
+        filteredByDenylist: number;
+        filteredByFunctionCall: number;
+        filteredByTestData: number;
+        filteredByStricterEntropy: number;
+        entropyThreshold: number;
+        nonBase64EntropyDelta: number;
+    }>;
 
     /**
      * Scans only the current project directory
      */
-    scanCurrentProject(): Promise<{ results: Map<string, HardcodedSecret[]>, totalFilesScanned: number }>;
+    scanCurrentProject(): Promise<{
+        results: Map<string, HardcodedSecret[]>;
+        totalFilesScanned: number;
+        filteredSecretsCount: number;
+        filteredByFilename: number;
+        filteredByDenylist: number;
+        filteredByFunctionCall: number;
+        filteredByTestData: number;
+        filteredByStricterEntropy: number;
+        entropyThreshold: number;
+        nonBase64EntropyDelta: number;
+    }>;
 }
 

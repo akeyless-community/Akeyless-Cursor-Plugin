@@ -8,7 +8,15 @@ export class ScanResult {
     constructor(
         public readonly secrets: HardcodedSecret[],
         public readonly totalFilesScanned: number,
-        public readonly scanDate: Date = new Date()
+        public readonly scanDate: Date = new Date(),
+        public readonly filteredSecretsCount: number = 0,
+        public readonly entropyThreshold: number = 4.0,
+        public readonly filteredByFilename: number = 0,
+        public readonly filteredByDenylist: number = 0,
+        public readonly filteredByFunctionCall: number = 0,
+        public readonly filteredByTestData: number = 0,
+        public readonly filteredByStricterEntropy: number = 0,
+        public readonly nonBase64EntropyDelta: number = 0
     ) {}
 
     /**

@@ -445,7 +445,9 @@ export const SECRET_PATTERNS: SecretPattern[] = [
     },
     {
         name: 'Secret',
-        pattern: /["']?(?:secret|private[_-]?key)["']?\s*[:=]\s*["']?([^"' \t\r\n]{6,})["']?/gi,
+        // Require a quoted string literal value to reduce false positives (e.g. TS/Go struct fields like `secret: Type`)
+        // and template literals like `secret: ${var}`.
+        pattern: /["']?(?:secret|private[_-]?key)["']?\s*[:=]\s*["']([^"' \t\r\n$]{6,})["']/gi,
         suggestion: 'Secret',
         confidence: 'medium'
     },

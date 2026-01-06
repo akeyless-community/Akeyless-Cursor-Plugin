@@ -12,6 +12,7 @@ import { logger } from '../../../utils/logger';
 export class SecretScanner {
     private readonly patternRegistry: PatternRegistry;
     private configManager: ScannerConfigManager;
+    private cachedDenylistRegexes: RegExp[] | null = null;
 
     constructor(
         patternRegistry?: PatternRegistry,
@@ -23,8 +24,20 @@ export class SecretScanner {
 
     /**
      * Scans a document for hardcoded secrets
+     * Returns both the filtered secrets and the count of filtered-out secrets
      */
-    async scanDocument(document: vscode.TextDocument): Promise<HardcodedSecret[]> {
+    async scanDocument(document: vscode.TextDocument): Promise<{
+        secrets: HardcodedSecret[];
+        filteredCount: number;
+        filterStats: {
+            filteredByEntropy: number;
+            filteredByStricterEntropy: number;
+            filteredByDenylist: number;
+            filteredByFunctionCall: number;
+            filteredByTestData: number;
+            filteredByFilename: number;
+        };
+    }> {
         const secrets: HardcodedSecret[] = [];
         
         // Check file size using line count as a proxy (avoids loading full text)
@@ -35,7 +48,18 @@ export class SecretScanner {
         
         if (document.lineCount > MAX_LINES) {
             logger.warn(`Skipping file ${document.fileName} - file too large (${document.lineCount} lines). Maximum: ${MAX_LINES} lines`);
-            return [];
+            return {
+                secrets: [],
+                filteredCount: 0,
+                filterStats: {
+                    filteredByEntropy: 0,
+                    filteredByStricterEntropy: 0,
+                    filteredByDenylist: 0,
+                    filteredByFunctionCall: 0,
+                    filteredByTestData: 0,
+                    filteredByFilename: 0
+                }
+            };
         }
         
         let fullText: string;
@@ -49,7 +73,18 @@ export class SecretScanner {
             const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
             if (fullText.length > MAX_FILE_SIZE) {
                 logger.warn(`Skipping file ${document.fileName} - file too large (${(fullText.length / 1024 / 1024).toFixed(2)}MB). Maximum size: ${MAX_FILE_SIZE / 1024 / 1024}MB`);
-                return [];
+                return {
+                    secrets: [],
+                    filteredCount: 0,
+                    filterStats: {
+                        filteredByEntropy: 0,
+                        filteredByStricterEntropy: 0,
+                        filteredByDenylist: 0,
+                        filteredByFunctionCall: 0,
+                        filteredByTestData: 0,
+                        filteredByFilename: 0
+                    }
+                };
             }
             
             // Try to split into lines - this can also throw RangeError
@@ -58,14 +93,36 @@ export class SecretScanner {
             } catch (splitError) {
                 if (splitError instanceof RangeError && splitError.message.includes('Invalid string length')) {
                     logger.warn(`Skipping file ${document.fileName} - file too large to split into lines`);
-                    return [];
+                    return {
+                        secrets: [],
+                        filteredCount: 0,
+                        filterStats: {
+                            filteredByEntropy: 0,
+                            filteredByStricterEntropy: 0,
+                            filteredByDenylist: 0,
+                            filteredByFunctionCall: 0,
+                            filteredByTestData: 0,
+                            filteredByFilename: 0
+                        }
+                    };
                 }
                 throw splitError;
             }
         } catch (error) {
             if (error instanceof RangeError && (error.message.includes('Invalid string length') || error.message.includes('Maximum call stack'))) {
                 logger.warn(`Skipping file ${document.fileName} - file too large to process: ${error.message}`);
-                return [];
+                return {
+                    secrets: [],
+                    filteredCount: 0,
+                    filterStats: {
+                        filteredByEntropy: 0,
+                        filteredByStricterEntropy: 0,
+                        filteredByDenylist: 0,
+                        filteredByFunctionCall: 0,
+                        filteredByTestData: 0,
+                        filteredByFilename: 0
+                    }
+                };
             }
             throw error;
         }
@@ -131,6 +188,7 @@ export class SecretScanner {
                         value,
                         type: pattern.suggestion,
                         context,
+                        patternConfidence: pattern.confidence,
                         detectionReason: `Pattern match: ${pattern.name} (${pattern.confidence} confidence)\nPattern: ${pattern.pattern.source}`
                     });
 
@@ -192,6 +250,7 @@ export class SecretScanner {
                             value,
                             type: pattern.suggestion,
                             context,
+                            patternConfidence: pattern.confidence,
                             detectionReason: `Pattern match: ${pattern.name} (${pattern.confidence} confidence)\nPattern: ${pattern.pattern.source}`
                         });
 
@@ -214,11 +273,37 @@ export class SecretScanner {
             secrets.push(...entropySecrets);
         }
 
-        // Deduplicate secrets - same value at same location should only appear once
-        const deduplicatedSecrets = this.deduplicateSecrets(secrets);
-        logger.debug(`Deduplicated ${secrets.length} detected secrets to ${deduplicatedSecrets.length}`);
+        // Apply entropy filtering to reduce false positives
+        // Filter out secrets with low entropy (e.g., paths, URLs, model names)
+        const entropyThreshold = this.configManager.get().minEntropy;
+        const entropyFiltered = this.filterByEntropy(secrets, entropyThreshold);
+        const filteredSecrets = entropyFiltered.secrets;
+
+        // Apply additional false-positive filters (denylist/function-call/test-data), after entropy filtering
+        const postFiltered = this.applyPostEntropyFilters(filteredSecrets);
         
-        return deduplicatedSecrets;
+        // Deduplicate secrets - same value at same location should only appear once
+        const deduplicatedSecrets = this.deduplicateSecrets(postFiltered.secrets);
+        logger.debug(`Deduplicated ${postFiltered.secrets.length} detected secrets to ${deduplicatedSecrets.length}`);
+        
+        // Calculate filtered count (secrets removed by entropy filtering + other post-filters)
+        const filterStats = {
+            filteredByEntropy: entropyFiltered.stats.filteredByEntropy,
+            filteredByStricterEntropy: entropyFiltered.stats.filteredByStricterEntropy,
+            filteredByDenylist: postFiltered.stats.filteredByDenylist,
+            filteredByFunctionCall: postFiltered.stats.filteredByFunctionCall,
+            filteredByTestData: postFiltered.stats.filteredByTestData,
+            filteredByFilename: postFiltered.stats.filteredByFilename
+        };
+
+        const filteredCount =
+            filterStats.filteredByEntropy +
+            filterStats.filteredByFilename +
+            filterStats.filteredByDenylist +
+            filterStats.filteredByFunctionCall +
+            filterStats.filteredByTestData;
+        
+        return { secrets: deduplicatedSecrets, filteredCount, filterStats };
     }
 
     /**
@@ -298,6 +383,288 @@ export class SecretScanner {
     }
 
     /**
+     * Cleans a value for entropy calculation by removing variable references and common patterns
+     * This helps identify truly random strings vs structured data like paths, URLs, model names
+     */
+    private cleanValueForEntropy(value: string): string {
+        // Remove shell variable references like $HOME, $VAR, ${VAR}
+        let cleaned = value.replace(/\$\{?[A-Z_][A-Z0-9_]*\}?/g, '');
+        
+        // Remove common URL patterns (protocol://domain)
+        cleaned = cleaned.replace(/https?:\/\/[^\s"'`]+/gi, '');
+        
+        // Remove common path patterns (starting with / or containing multiple /)
+        if (/^\/[^\s"'`]*$/.test(value) || value.split('/').length > 2) {
+            // If it looks like a path, remove path separators and common path components
+            cleaned = cleaned.replace(/\/+/g, '');
+        }
+        
+        return cleaned || value; // Return original if cleaning removes everything
+    }
+
+    /**
+     * Checks if a value looks like a false positive (path, URL, model name, etc.)
+     */
+    private isFalsePositive(value: string): { isFalsePositive: boolean; reason?: string } {
+        // Check for URLs
+        if (/^https?:\/\/[^\s"'`]+$/i.test(value)) {
+            return { isFalsePositive: true, reason: 'URL pattern' };
+        }
+        
+        // Check for paths (absolute, relative, or with variables)
+        if (/^(\/|\.\/|~\/|\$[A-Z_][A-Z0-9_]*\/)[^\s"'`]*$/.test(value) || 
+            (value.includes('/') && value.split('/').length > 2 && 
+             !/[A-Za-z0-9+/=]{20,}/.test(value))) { // Not base64-like
+            return { isFalsePositive: true, reason: 'path pattern' };
+        }
+        
+        // Check for model names (common patterns like "model-version" or "provider-model")
+        if (/^[a-z0-9]+[-.][0-9.]+[-a-z0-9]*$/i.test(value) && value.length < 50) {
+            return { isFalsePositive: true, reason: 'model name pattern' };
+        }
+        
+        // Check for common environment variable patterns that aren't secrets
+        if (/^\$[A-Z_][A-Z0-9_]*(\/|$)/.test(value)) {
+            return { isFalsePositive: true, reason: 'environment variable path' };
+        }
+        
+        return { isFalsePositive: false };
+    }
+
+    private isHighConfidenceDetection(secret: HardcodedSecret): boolean {
+        if (secret.patternConfidence === 'high') return true;
+        // Backward compatible: parse from detectionReason if present
+        return /\(high confidence\)/i.test(secret.detectionReason ?? '');
+    }
+
+    private getDenylistRegexes(): RegExp[] {
+        if (this.cachedDenylistRegexes) return this.cachedDenylistRegexes;
+        const regexStrings = this.configManager.get().filters.denylist.regexes;
+        const compiled: RegExp[] = [];
+        for (const pattern of regexStrings) {
+            try {
+                // Support either "rawPattern" or "/rawPattern/flags" (e.g. "/foo/i")
+                const trimmed = pattern.trim();
+                const slashDelim = trimmed.startsWith('/') && trimmed.lastIndexOf('/') > 0;
+                if (slashDelim) {
+                    const lastSlash = trimmed.lastIndexOf('/');
+                    const body = trimmed.slice(1, lastSlash);
+                    const flags = trimmed.slice(lastSlash + 1);
+                    compiled.push(new RegExp(body, flags));
+                } else {
+                    compiled.push(new RegExp(trimmed));
+                }
+            } catch (e) {
+                logger.warn(`Invalid denylist regex skipped: ${pattern} (${e instanceof Error ? e.message : String(e)})`);
+            }
+        }
+        this.cachedDenylistRegexes = compiled;
+        return compiled;
+    }
+
+    private matchesDenylist(value: string): boolean {
+        const cfg = this.configManager.get().filters.denylist;
+        if (!cfg.enabled) return false;
+
+        const haystack = cfg.caseInsensitiveSubstrings ? value.toLowerCase() : value;
+        for (const entry of cfg.substrings) {
+            if (!entry) continue;
+            const needle = cfg.caseInsensitiveSubstrings ? entry.toLowerCase() : entry;
+            if (needle && haystack.includes(needle)) {
+                return true;
+            }
+        }
+
+        for (const re of this.getDenylistRegexes()) {
+            if (re.test(value)) return true;
+        }
+
+        return false;
+    }
+
+    private looksLikeFunctionCall(value: string): boolean {
+        return value.includes('(') && value.includes(')');
+    }
+
+    private looksLikeTestData(value: string): boolean {
+        const cfg = this.configManager.get().filters.testData;
+        if (!cfg.enabled) return false;
+        const v = value.toLowerCase();
+        return cfg.substrings.some(s => s && v.includes(s.toLowerCase()));
+    }
+
+    private applyPostEntropyFilters(secrets: HardcodedSecret[]): {
+        secrets: HardcodedSecret[];
+        stats: { filteredByFilename: number; filteredByDenylist: number; filteredByFunctionCall: number; filteredByTestData: number };
+    } {
+        const cfg = this.configManager.get().filters;
+        const out: HardcodedSecret[] = [];
+        const stats = { filteredByFilename: 0, filteredByDenylist: 0, filteredByFunctionCall: 0, filteredByTestData: 0 };
+
+        for (const secret of secrets) {
+            // Always preserve high-confidence detections (configurable)
+            if (cfg.highConfidenceBypass && this.isHighConfidenceDetection(secret)) {
+                out.push(secret);
+                continue;
+            }
+
+            if (cfg.filename.enabled && this.matchesFilenameFilter(secret.fileName)) {
+                stats.filteredByFilename++;
+                continue;
+            }
+
+            if (cfg.denylist.enabled && this.matchesDenylist(secret.value)) {
+                stats.filteredByDenylist++;
+                continue;
+            }
+
+            if (cfg.functionCall.enabled && this.looksLikeFunctionCall(secret.value)) {
+                stats.filteredByFunctionCall++;
+                continue;
+            }
+
+            if (cfg.testData.enabled && this.looksLikeTestData(secret.value)) {
+                stats.filteredByTestData++;
+                continue;
+            }
+
+            out.push(secret);
+        }
+
+        return { secrets: out, stats };
+    }
+
+    private matchesFilenameFilter(filePath: string): boolean {
+        const cfg = this.configManager.get().filters.filename;
+        if (!cfg.enabled) return false;
+
+        const haystack = cfg.caseInsensitive ? filePath.toLowerCase() : filePath;
+
+        for (const sub of cfg.substrings) {
+            if (!sub) continue;
+            const needle = cfg.caseInsensitive ? sub.toLowerCase() : sub;
+            if (needle && haystack.includes(needle)) return true;
+        }
+
+        for (const suf of cfg.suffixes) {
+            if (!suf) continue;
+            const needle = cfg.caseInsensitive ? suf.toLowerCase() : suf;
+            if (needle && haystack.endsWith(needle)) return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Filters secrets using advanced entropy analysis with type-specific thresholds,
+     * normalized entropy, length weighting, and chi-square uniformity tests
+     * @returns Filtered secrets array
+     */
+    private filterByEntropy(secrets: HardcodedSecret[], defaultThreshold: number): {
+        secrets: HardcodedSecret[];
+        stats: { filteredByEntropy: number; filteredByStricterEntropy: number };
+    } {
+        const cfg = this.configManager.get().filters;
+        const filtered: HardcodedSecret[] = [];
+        const stats = { filteredByEntropy: 0, filteredByStricterEntropy: 0 };
+
+        for (const secret of secrets) {
+            // Always preserve high-confidence detections (configurable)
+            if (cfg.highConfidenceBypass && this.isHighConfidenceDetection(secret)) {
+                filtered.push(secret);
+                continue;
+            }
+
+            // First check for obvious false positives
+            const falsePositiveCheck = this.isFalsePositive(secret.value);
+            if (falsePositiveCheck.isFalsePositive) {
+                logger.debug(`Filtered out ${falsePositiveCheck.reason}: ${secret.type} at ${secret.fileName}:${secret.lineNumber} (value: ${secret.value.substring(0, 50)})`);
+                stats.filteredByEntropy++;
+                continue;
+            }
+            
+            // Clean the value to remove variable references, URLs, and path structures
+            const cleanedValue = this.cleanValueForEntropy(secret.value);
+            
+            // Skip if cleaned value is too short (minimum length requirement)
+            if (cleanedValue.length < 20) {
+                logger.debug(`Filtered out short string: ${secret.type} at ${secret.fileName}:${secret.lineNumber} (length: ${cleanedValue.length}, min: 20)`);
+                stats.filteredByEntropy++;
+                continue;
+            }
+            
+            // Detect string type (hex, base64, or general)
+            const stringType = EnhancedEntropyAnalyzer.detectStringType(cleanedValue);
+            // Respect configured baseline, but keep existing type-specific minimums
+            const baseTypeThreshold = Math.max(
+                EnhancedEntropyAnalyzer.getTypeSpecificThreshold(stringType),
+                defaultThreshold
+            );
+            const nonBase64Delta = (cfg.entropy.applyNonBase64Delta && stringType !== 'base64') ? cfg.entropy.nonBase64Delta : 0;
+            const effectiveTypeThreshold = baseTypeThreshold + nonBase64Delta;
+            
+            // Calculate various entropy metrics
+            const shannonEntropy = EnhancedEntropyAnalyzer.calculateShannonEntropy(cleanedValue);
+            const normalizedEntropy = EnhancedEntropyAnalyzer.calculateNormalizedEntropy(cleanedValue);
+            const lengthWeightedEntropy = EnhancedEntropyAnalyzer.calculateLengthWeightedEntropy(cleanedValue);
+            const chiSquareTest = EnhancedEntropyAnalyzer.chiSquareUniformityTest(cleanedValue);
+            
+            // Apply multiple filtering criteria
+            let shouldFilter = false;
+            let filterReason = '';
+            
+            // 1. Type-specific entropy threshold
+            if (shannonEntropy < effectiveTypeThreshold) {
+                shouldFilter = true;
+                filterReason = `entropy ${shannonEntropy.toFixed(2)} < ${stringType} threshold ${effectiveTypeThreshold.toFixed(2)}`;
+                if (nonBase64Delta > 0 && shannonEntropy >= baseTypeThreshold) {
+                    stats.filteredByStricterEntropy++;
+                }
+            }
+            
+            // 2. Normalized entropy check (should be >= 0.8 for uniform random)
+            if (!shouldFilter && normalizedEntropy < 0.8) {
+                shouldFilter = true;
+                filterReason = `normalized entropy ${normalizedEntropy.toFixed(2)} < 0.8 (non-uniform distribution)`;
+            }
+            
+            // 3. Length-weighted entropy check
+            if (!shouldFilter && lengthWeightedEntropy < effectiveTypeThreshold) {
+                shouldFilter = true;
+                filterReason = `length-weighted entropy ${lengthWeightedEntropy.toFixed(2)} < ${stringType} threshold ${effectiveTypeThreshold.toFixed(2)}`;
+                if (nonBase64Delta > 0 && lengthWeightedEntropy >= baseTypeThreshold) {
+                    stats.filteredByStricterEntropy++;
+                }
+            }
+            
+            // 4. Chi-square uniformity test (p-value < 0.05 suggests non-uniform, likely FP)
+            if (!shouldFilter && !chiSquareTest.isUniform && chiSquareTest.pValue < 0.05) {
+                shouldFilter = true;
+                filterReason = `chi-square test indicates non-uniform distribution (p=${chiSquareTest.pValue.toFixed(4)}, χ²=${chiSquareTest.chiSquare.toFixed(2)})`;
+            }
+            
+            // 5. Very long strings (>200 chars) need higher entropy
+            if (!shouldFilter && cleanedValue.length > 200 && shannonEntropy < effectiveTypeThreshold + 0.5) {
+                shouldFilter = true;
+                filterReason = `very long string (${cleanedValue.length} chars) with insufficient entropy ${shannonEntropy.toFixed(2)}`;
+            }
+            
+            if (shouldFilter) {
+                logger.debug(`Filtered out finding: ${secret.type} at ${secret.fileName}:${secret.lineNumber} (${filterReason}, type: ${stringType}, value: ${secret.value.substring(0, 50)})`);
+                stats.filteredByEntropy++;
+            } else {
+                filtered.push(secret);
+            }
+        }
+
+        if (stats.filteredByEntropy > 0) {
+            logger.info(`Advanced entropy filtering: Removed ${stats.filteredByEntropy} low-entropy/non-uniform secrets`);
+        }
+
+        return { secrets: filtered, stats };
+    }
+
+    /**
      * Detects high-entropy strings that might be secrets but don't match specific patterns
      * Scans for strings in common secret variable contexts with high entropy
      */
@@ -368,7 +735,18 @@ export class SecretScanner {
     /**
      * Scans the entire workspace for hardcoded secrets
      */
-    async scanWorkspace(): Promise<{ results: Map<string, HardcodedSecret[]>, totalFilesScanned: number }> {
+    async scanWorkspace(): Promise<{
+        results: Map<string, HardcodedSecret[]>;
+        totalFilesScanned: number;
+        filteredSecretsCount: number;
+        filteredByFilename: number;
+        filteredByDenylist: number;
+        filteredByFunctionCall: number;
+        filteredByTestData: number;
+        filteredByStricterEntropy: number;
+        entropyThreshold: number;
+        nonBase64EntropyDelta: number;
+    }> {
         const results = new Map<string, HardcodedSecret[]>();
         let totalSecrets = 0;
 
@@ -381,10 +759,23 @@ export class SecretScanner {
 
         logger.info(`Found ${files.length} files to scan`);
 
+        let totalEntropyFilteredCount = 0;
+        let filteredByFilename = 0;
+        let filteredByDenylist = 0;
+        let filteredByFunctionCall = 0;
+        let filteredByTestData = 0;
+        let filteredByStricterEntropy = 0;
         for (const file of files) {
             try {
                 const document = await vscode.workspace.openTextDocument(file);
-                const secrets = await this.scanDocument(document);
+                const scanResult = await this.scanDocument(document);
+                const secrets = scanResult.secrets;
+                totalEntropyFilteredCount += scanResult.filterStats.filteredByEntropy;
+                filteredByFilename += scanResult.filterStats.filteredByFilename;
+                filteredByDenylist += scanResult.filterStats.filteredByDenylist;
+                filteredByFunctionCall += scanResult.filterStats.filteredByFunctionCall;
+                filteredByTestData += scanResult.filterStats.filteredByTestData;
+                filteredByStricterEntropy += scanResult.filterStats.filteredByStricterEntropy;
 
                 if (secrets.length > 0) {
                     results.set(file.fsPath, secrets);
@@ -401,26 +792,83 @@ export class SecretScanner {
             }
         }
 
-        logger.info(`Scan complete: Found ${totalSecrets} potential secrets in ${results.size} files`);
-        return { results, totalFilesScanned: files.length };
+        const cfg = this.configManager.get();
+        const entropyThreshold = cfg.minEntropy;
+        const nonBase64EntropyDelta = (cfg.filters.entropy.applyNonBase64Delta ? cfg.filters.entropy.nonBase64Delta : 0);
+        logger.info(
+            `Scan complete: Found ${totalSecrets} potential secrets in ${results.size} files ` +
+            `(filtered by entropy: ${totalEntropyFilteredCount}, filename: ${filteredByFilename}, denylist: ${filteredByDenylist}, ` +
+            `function call: ${filteredByFunctionCall}, test data: ${filteredByTestData}, ` +
+            `stricter entropy: ${filteredByStricterEntropy})`
+        );
+        return {
+            results,
+            totalFilesScanned: files.length,
+            filteredSecretsCount: totalEntropyFilteredCount,
+            filteredByFilename,
+            filteredByDenylist,
+            filteredByFunctionCall,
+            filteredByTestData,
+            filteredByStricterEntropy,
+            entropyThreshold,
+            nonBase64EntropyDelta
+        };
     }
 
     /**
      * Scans only the current active file
      */
-    async scanCurrentFile(): Promise<{ results: Map<string, HardcodedSecret[]>, totalFilesScanned: number }> {
+    async scanCurrentFile(): Promise<{
+        results: Map<string, HardcodedSecret[]>;
+        totalFilesScanned: number;
+        filteredSecretsCount: number;
+        filteredByFilename: number;
+        filteredByDenylist: number;
+        filteredByFunctionCall: number;
+        filteredByTestData: number;
+        filteredByStricterEntropy: number;
+        entropyThreshold: number;
+        nonBase64EntropyDelta: number;
+    }> {
         const results = new Map<string, HardcodedSecret[]>();
 
         const activeEditor = vscode.window.activeTextEditor;
         if (!activeEditor) {
             logger.info('No active editor found');
-            return { results, totalFilesScanned: 0 };
+            const cfg = this.configManager.get();
+            const entropyThreshold = cfg.minEntropy;
+            const nonBase64EntropyDelta = (cfg.filters.entropy.applyNonBase64Delta ? cfg.filters.entropy.nonBase64Delta : 0);
+            return {
+                results,
+                totalFilesScanned: 0,
+                filteredSecretsCount: 0,
+                filteredByFilename: 0,
+                filteredByDenylist: 0,
+                filteredByFunctionCall: 0,
+                filteredByTestData: 0,
+                filteredByStricterEntropy: 0,
+                entropyThreshold,
+                nonBase64EntropyDelta
+            };
         }
 
         logger.info(`Scanning current file: ${activeEditor.document.fileName}`);
 
+        let entropyFilteredCount = 0;
+        let filteredByFilename = 0;
+        let filteredByDenylist = 0;
+        let filteredByFunctionCall = 0;
+        let filteredByTestData = 0;
+        let filteredByStricterEntropy = 0;
         try {
-            const secrets = await this.scanDocument(activeEditor.document);
+            const scanResult = await this.scanDocument(activeEditor.document);
+            const secrets = scanResult.secrets;
+            entropyFilteredCount = scanResult.filterStats.filteredByEntropy;
+            filteredByFilename = scanResult.filterStats.filteredByFilename;
+            filteredByDenylist = scanResult.filterStats.filteredByDenylist;
+            filteredByFunctionCall = scanResult.filterStats.filteredByFunctionCall;
+            filteredByTestData = scanResult.filterStats.filteredByTestData;
+            filteredByStricterEntropy = scanResult.filterStats.filteredByStricterEntropy;
             if (secrets.length > 0) {
                 results.set(activeEditor.document.fileName, secrets);
                 logger.info(`Found ${secrets.length} potential secrets in current file`);
@@ -436,13 +884,38 @@ export class SecretScanner {
             }
         }
 
-        return { results, totalFilesScanned: 1 };
+        const cfg = this.configManager.get();
+        const entropyThreshold = cfg.minEntropy;
+        const nonBase64EntropyDelta = (cfg.filters.entropy.applyNonBase64Delta ? cfg.filters.entropy.nonBase64Delta : 0);
+        return {
+            results,
+            totalFilesScanned: 1,
+            filteredSecretsCount: entropyFilteredCount,
+            filteredByFilename,
+            filteredByDenylist,
+            filteredByFunctionCall,
+            filteredByTestData,
+            filteredByStricterEntropy,
+            entropyThreshold,
+            nonBase64EntropyDelta
+        };
     }
 
     /**
      * Scans only the current project directory (excludes libraries)
      */
-    async scanCurrentProject(): Promise<{ results: Map<string, HardcodedSecret[]>, totalFilesScanned: number }> {
+    async scanCurrentProject(): Promise<{
+        results: Map<string, HardcodedSecret[]>;
+        totalFilesScanned: number;
+        filteredSecretsCount: number;
+        filteredByFilename: number;
+        filteredByDenylist: number;
+        filteredByFunctionCall: number;
+        filteredByTestData: number;
+        filteredByStricterEntropy: number;
+        entropyThreshold: number;
+        nonBase64EntropyDelta: number;
+    }> {
         const results = new Map<string, HardcodedSecret[]>();
         let totalSecrets = 0;
 
@@ -451,7 +924,21 @@ export class SecretScanner {
         const workspaceRoot = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceRoot) {
             logger.error('No workspace root found');
-            return { results, totalFilesScanned: 0 };
+            const cfg = this.configManager.get();
+            const entropyThreshold = cfg.minEntropy;
+            const nonBase64EntropyDelta = (cfg.filters.entropy.applyNonBase64Delta ? cfg.filters.entropy.nonBase64Delta : 0);
+            return {
+                results,
+                totalFilesScanned: 0,
+                filteredSecretsCount: 0,
+                filteredByFilename: 0,
+                filteredByDenylist: 0,
+                filteredByFunctionCall: 0,
+                filteredByTestData: 0,
+                filteredByStricterEntropy: 0,
+                entropyThreshold,
+                nonBase64EntropyDelta
+            };
         }
 
         const files = await vscode.workspace.findFiles(
@@ -461,10 +948,23 @@ export class SecretScanner {
 
         logger.info(`Found ${files.length} files to scan`);
 
+        let totalEntropyFilteredCount = 0;
+        let filteredByFilename = 0;
+        let filteredByDenylist = 0;
+        let filteredByFunctionCall = 0;
+        let filteredByTestData = 0;
+        let filteredByStricterEntropy = 0;
         for (const file of files) {
             try {
                 const document = await vscode.workspace.openTextDocument(file);
-                const secrets = await this.scanDocument(document);
+                const scanResult = await this.scanDocument(document);
+                const secrets = scanResult.secrets;
+                totalEntropyFilteredCount += scanResult.filterStats.filteredByEntropy;
+                filteredByFilename += scanResult.filterStats.filteredByFilename;
+                filteredByDenylist += scanResult.filterStats.filteredByDenylist;
+                filteredByFunctionCall += scanResult.filterStats.filteredByFunctionCall;
+                filteredByTestData += scanResult.filterStats.filteredByTestData;
+                filteredByStricterEntropy += scanResult.filterStats.filteredByStricterEntropy;
 
                 if (secrets.length > 0) {
                     results.set(file.fsPath, secrets);
@@ -481,8 +981,27 @@ export class SecretScanner {
             }
         }
 
-        logger.info(`Project scan complete: Found ${totalSecrets} potential secrets in ${results.size} files`);
-        return { results, totalFilesScanned: files.length };
+        const cfg = this.configManager.get();
+        const entropyThreshold = cfg.minEntropy;
+        const nonBase64EntropyDelta = (cfg.filters.entropy.applyNonBase64Delta ? cfg.filters.entropy.nonBase64Delta : 0);
+        logger.info(
+            `Project scan complete: Found ${totalSecrets} potential secrets in ${results.size} files ` +
+            `(filtered by entropy: ${totalEntropyFilteredCount}, filename: ${filteredByFilename}, denylist: ${filteredByDenylist}, ` +
+            `function call: ${filteredByFunctionCall}, test data: ${filteredByTestData}, ` +
+            `stricter entropy: ${filteredByStricterEntropy})`
+        );
+        return {
+            results,
+            totalFilesScanned: files.length,
+            filteredSecretsCount: totalEntropyFilteredCount,
+            filteredByFilename,
+            filteredByDenylist,
+            filteredByFunctionCall,
+            filteredByTestData,
+            filteredByStricterEntropy,
+            entropyThreshold,
+            nonBase64EntropyDelta
+        };
     }
 
     /**
@@ -490,11 +1009,17 @@ export class SecretScanner {
      */
     configure(options: {
         minEntropy?: number;
+        filters?: Partial<ScannerConfig['filters']>;
     }): void {
         const updates: Partial<ScannerConfig> = {};
 
         if (options.minEntropy !== undefined) {
             updates.minEntropy = options.minEntropy;
+        }
+        if (options.filters !== undefined) {
+            updates.filters = options.filters as Partial<ScannerConfig['filters']> as any;
+            // invalidate cached regexes when denylist changes
+            this.cachedDenylistRegexes = null;
         }
 
         this.configManager = this.configManager.with(updates);
@@ -505,11 +1030,11 @@ export class SecretScanner {
     /**
      * Generates a suggested name for a secret based on its context
      */
-    generateSecretName(secret: HardcodedSecret, fileName: string): string {
+    generateSecretName(detected: HardcodedSecret, fileName: string): string {
         const baseName = fileName.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'unknown';
         const timestamp = Date.now();
 
-        const contextLower = secret.context.toLowerCase();
+        const contextLower = detected.context.toLowerCase();
         let type = 'secret';
 
         if (contextLower.includes('api') || contextLower.includes('key')) {
@@ -535,30 +1060,75 @@ export class SecretScanner {
         return SecretScanner.defaultInstance;
     }
 
-    static async scanDocument(document: vscode.TextDocument): Promise<HardcodedSecret[]> {
+    static async scanDocument(document: vscode.TextDocument): Promise<{
+        secrets: HardcodedSecret[];
+        filteredCount: number;
+        filterStats: {
+            filteredByEntropy: number;
+            filteredByStricterEntropy: number;
+            filteredByDenylist: number;
+            filteredByFunctionCall: number;
+            filteredByTestData: number;
+            filteredByFilename: number;
+        };
+    }> {
         return SecretScanner.getDefaultInstance().scanDocument(document);
     }
 
-    static async scanWorkspace(): Promise<{ results: Map<string, HardcodedSecret[]>, totalFilesScanned: number }> {
+    static async scanWorkspace(): Promise<{
+        results: Map<string, HardcodedSecret[]>;
+        totalFilesScanned: number;
+        filteredSecretsCount: number;
+        filteredByFilename: number;
+        filteredByDenylist: number;
+        filteredByFunctionCall: number;
+        filteredByTestData: number;
+        filteredByStricterEntropy: number;
+        entropyThreshold: number;
+        nonBase64EntropyDelta: number;
+    }> {
         return SecretScanner.getDefaultInstance().scanWorkspace();
     }
 
-    static async scanCurrentFile(): Promise<{ results: Map<string, HardcodedSecret[]>, totalFilesScanned: number }> {
+    static async scanCurrentFile(): Promise<{
+        results: Map<string, HardcodedSecret[]>;
+        totalFilesScanned: number;
+        filteredSecretsCount: number;
+        filteredByFilename: number;
+        filteredByDenylist: number;
+        filteredByFunctionCall: number;
+        filteredByTestData: number;
+        filteredByStricterEntropy: number;
+        entropyThreshold: number;
+        nonBase64EntropyDelta: number;
+    }> {
         return SecretScanner.getDefaultInstance().scanCurrentFile();
     }
 
-    static async scanCurrentProject(): Promise<{ results: Map<string, HardcodedSecret[]>, totalFilesScanned: number }> {
+    static async scanCurrentProject(): Promise<{
+        results: Map<string, HardcodedSecret[]>;
+        totalFilesScanned: number;
+        filteredSecretsCount: number;
+        filteredByFilename: number;
+        filteredByDenylist: number;
+        filteredByFunctionCall: number;
+        filteredByTestData: number;
+        filteredByStricterEntropy: number;
+        entropyThreshold: number;
+        nonBase64EntropyDelta: number;
+    }> {
         return SecretScanner.getDefaultInstance().scanCurrentProject();
     }
 
     static configure(options: {
         minEntropy?: number;
+        filters?: Partial<ScannerConfig['filters']>;
     }): void {
         SecretScanner.getDefaultInstance().configure(options);
     }
 
-    static generateSecretName(secret: HardcodedSecret, fileName: string): string {
-        return SecretScanner.getDefaultInstance().generateSecretName(secret, fileName);
+    static generateSecretName(detected: HardcodedSecret, fileName: string): string {
+        return SecretScanner.getDefaultInstance().generateSecretName(detected, fileName);
     }
 }
 
