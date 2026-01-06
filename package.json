@@ -2,7 +2,7 @@
   "name": "akeyless-secrets-manager",
   "displayName": "Akeyless Secrets Manager",
   "description": "Find and fix hardcoded secrets in your code by integrating directly with Akeyless. Now with auto-scan on save!",
-  "version": "1.5.38",
+  "version": "1.5.44",
   "publisher": "Akeyless",
   "license": "MIT",
   "repository": {
@@ -97,6 +97,100 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically scan for hardcoded secrets when a file is saved."
+        },
+        "akeyless.scanner.minEntropy": {
+          "type": "number",
+          "default": 3,
+          "description": "Minimum entropy threshold used by the scanner's entropy filtering."
+        },
+        "akeyless.scanner.filters.highConfidenceBypass": {
+          "type": "boolean",
+          "default": true,
+          "description": "If enabled, findings from high-confidence rules (e.g., AKIA, AIza, Stripe) will always be reported and will bypass all filters."
+        },
+        "akeyless.scanner.filters.denylist.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable denylist filtering to exclude known non-secret placeholders and values."
+        },
+        "akeyless.scanner.filters.denylist.caseInsensitiveSubstrings": {
+          "type": "boolean",
+          "default": true,
+          "description": "If enabled, denylist substring checks are case-insensitive."
+        },
+        "akeyless.scanner.filters.denylist.substrings": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Denylist substrings: if a detected value contains any of these substrings, it will be filtered out."
+        },
+        "akeyless.scanner.filters.denylist.regexes": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Denylist regexes (JavaScript RegExp patterns): if a detected value matches any of these, it will be filtered out."
+        },
+        "akeyless.scanner.filters.functionCall.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Filter out values that look like function calls/getter invocations (contain both '(' and ')')."
+        },
+        "akeyless.scanner.filters.testData.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Filter out obvious test/example values (example., test., stub, mock, sample, dummy, placeholder)."
+        },
+        "akeyless.scanner.filters.testData.substrings": {
+          "type": "array",
+          "default": [
+            "example.",
+            "test.",
+            "stub",
+            "mock",
+            "sample",
+            "dummy",
+            "placeholder"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Case-insensitive substrings used to filter obvious test/example data."
+        },
+        "akeyless.scanner.filters.entropy.applyNonBase64Delta": {
+          "type": "boolean",
+          "default": true,
+          "description": "If enabled, non-base64 values require a slightly higher entropy threshold than base64 values."
+        },
+        "akeyless.scanner.filters.entropy.nonBase64Delta": {
+          "type": "number",
+          "default": 0.5,
+          "description": "Extra entropy required for non-base64 values (added to the base entropy threshold)."
+        },
+        "akeyless.scanner.filters.filename.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Filter findings in test/generated files based on file path rules (skipped unless high-confidence)."
+        },
+        "akeyless.scanner.filters.filename.caseInsensitive": {
+          "type": "boolean",
+          "default": true,
+          "description": "If enabled, filename rules match case-insensitively."
+        },
+        "akeyless.scanner.filters.filename.substrings": {
+          "type": "array",
+          "default": [],
+          "items": { "type": "string" },
+          "description": "If a file path contains any of these substrings, findings in that file will be skipped (unless high-confidence)."
+        },
+        "akeyless.scanner.filters.filename.suffixes": {
+          "type": "array",
+          "default": [],
+          "items": { "type": "string" },
+          "description": "If a file path ends with any of these suffixes, findings in that file will be skipped (unless high-confidence)."
         }
       }
     },
@@ -138,7 +232,10 @@
       {
         "language": "*",
         "title": "Akeyless Secret Fixes",
-        "kinds": ["quickfix", "refactor"]
+        "kinds": [
+          "quickfix",
+          "refactor"
+        ]
       }
     ],
     "viewsContainers": {
