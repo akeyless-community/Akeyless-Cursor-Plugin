@@ -117,24 +117,6 @@ The extension supports scanning for secrets in the following languages and file 
 - VS Code version 1.74.0 or higher
 - Akeyless CLI configured with valid credentials
 
-## Extension Settings
-
-Configure the extension behavior through VS Code settings:
-
-```json
-{
-  "akeyless.autoScanOnSave": true,
-  "akeyless.diagnostics.enableProblemsTab": true,
-  "akeyless.diagnostics.autoClearOnNewScan": true,
-  "akeyless.diagnostics.showInOutputOnly": false
-}
-```
-
-## Known Issues
-
-- Large files (>50MB) are automatically skipped during scanning
-- If you experience accumulation issues with diagnostics, disable the Problems tab display
-
 ## Contributing
 
 Contributions are welcome! Please visit our [GitHub repository](https://github.com/akeyless-community/Akeyless-Cursor-Plugin) to submit issues or pull requests.
