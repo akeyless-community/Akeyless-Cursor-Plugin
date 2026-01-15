@@ -269,11 +269,13 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
                 item.item.item_name.replace(/\\/g, '/') === folderPath
             );
             if (folderItem) {
-                folderItem.children = children;
+                // Sort children: folders first (A-Z), then items (A-Z)
+                folderItem.children = this.sortTreeItems(children);
             }
         }
 
-        return rootItems;
+        // Sort root items: folders first (A-Z), then items (A-Z)
+        return this.sortTreeItems(rootItems);
     }
 
     private getFolderChildren(folderPath: string): SecretTreeItem[] {
@@ -349,7 +351,32 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
                 }
             });
         
-        return Array.from(uniqueItems.values());
+        // Sort items: folders first (A-Z), then items (A-Z)
+        const sortedItems = this.sortTreeItems(Array.from(uniqueItems.values()));
+        return sortedItems;
+    }
+
+    /**
+     * Sorts tree items: folders first (A-Z), then items (A-Z)
+     */
+    private sortTreeItems(items: SecretTreeItem[]): SecretTreeItem[] {
+        return items.sort((a, b) => {
+            const aIsFolder = a.item.item_type === 'FOLDER';
+            const bIsFolder = b.item.item_type === 'FOLDER';
+            
+            // Folders come before items
+            if (aIsFolder && !bIsFolder) {
+                return -1;
+            }
+            if (!aIsFolder && bIsFolder) {
+                return 1;
+            }
+            
+            // Both are folders or both are items - sort alphabetically by name
+            const aName = extractSecretName(a.item.item_name).toLowerCase();
+            const bName = extractSecretName(b.item.item_name).toLowerCase();
+            return aName.localeCompare(bName);
+        });
     }
 
 

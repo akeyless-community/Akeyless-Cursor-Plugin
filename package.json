@@ -2,7 +2,7 @@
   "name": "akeyless-secrets-manager",
   "displayName": "Akeyless Secrets Manager",
   "description": "Manage Akeyless secrets and scan for hardcoded secrets in your code directly from VS Code",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "publisher": "Akeyless",
   "license": "MIT",
   "repository": {
