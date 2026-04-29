@@ -1,5 +1,14 @@
 import { AkeylessItem } from '../types';
 import { logger } from '../utils/logger';
+import {
+    augmentListItemsFailureMessage,
+    buildCreateSecretCommands,
+    buildGetSecretValueCommands,
+    buildUpdateSecretCommands,
+    execFirstSuccessful,
+    normalizeListItemsNextPage,
+    warnIfCliBelowListItemsMinimum,
+} from '../utils/akeylessCliCompat';
 import { promisify } from 'util';
 import { exec, ExecOptions } from 'child_process';
 
@@ -34,6 +43,11 @@ export class AkeylessCLI {
             } catch (error) {
                 throw new Error('Akeyless CLI not found. Please install it first: https://docs.akeyless.io/docs/install-akeyless-cli');
             }
+
+            await warnIfCliBelowListItemsMinimum(async () => {
+                const { stdout, stderr } = await execAsync(`${akeylessPath} --version`);
+                return stdout + stderr;
+            });
             
             const allItems: AkeylessItem[] = [];
             let nextPage: string | null = null;
@@ -70,7 +84,7 @@ export class AkeylessCLI {
                 allItems.push(...filteredItems);
                 
                 // Get next page token
-                nextPage = data.next_page || null;
+                nextPage = normalizeListItemsNextPage(data);
                 
                 if (nextPage) {
                     logger.info(` Next page token: ${nextPage}`);
@@ -84,7 +98,8 @@ export class AkeylessCLI {
             return allItems;
         } catch (error) {
             logger.error(' Failed to list items from CLI:', error);
-            throw new Error(`Failed to list items: ${error}`);
+            const msg = error instanceof Error ? error.message : String(error);
+            throw new Error(augmentListItemsFailureMessage(`Failed to list items: ${msg}`));
         }
     }
 
@@ -104,6 +119,11 @@ export class AkeylessCLI {
             } catch (error) {
                 throw new Error('Akeyless CLI not found. Please install it first: https://docs.akeyless.io/docs/install-akeyless-cli');
             }
+
+            await warnIfCliBelowListItemsMinimum(async () => {
+                const { stdout, stderr } = await execAsync(`${akeylessPath} --version`);
+                return stdout + stderr;
+            });
             
             // Build command with pagination
             let command = `${akeylessPath} list-items --json`;
@@ -119,8 +139,8 @@ export class AkeylessCLI {
             logger.info(` Parsed response structure:`, {
                 hasItems: !!data.items,
                 itemsLength: data.items?.length || 0,
-                hasNextPage: !!data.next_page,
-                nextPageToken: data.next_page || null
+                hasNextPage: !!normalizeListItemsNextPage(data),
+                nextPageToken: normalizeListItemsNextPage(data),
             });
             
             // Check if response is empty
@@ -149,11 +169,12 @@ export class AkeylessCLI {
             
             return {
                 items: filteredItems,
-                nextPage: data.next_page || null
+                nextPage: normalizeListItemsNextPage(data),
             };
         } catch (error) {
             logger.error(' Failed to list items page from CLI:', error);
-            throw new Error(`Failed to list items page: ${error}`);
+            const msg = error instanceof Error ? error.message : String(error);
+            throw new Error(augmentListItemsFailureMessage(`Failed to list items page: ${msg}`));
         }
     }
 
@@ -174,21 +195,11 @@ export class AkeylessCLI {
                 throw new Error('Akeyless CLI not found. Please install it first: https://docs.akeyless.io/docs/install-akeyless-cli');
             }
             
-            // Use CLI directly to get secret value
-            // Try --path first (more common), fallback to --name
-            let stdout: string;
-            try {
-                const result = await execAsync(`${akeylessPath} get-secret-value --path "${secretName}" --json`);
-                stdout = result.stdout;
-            } catch (pathError) {
-                // Fallback to --name if --path fails
-                try {
-                    const result = await execAsync(`${akeylessPath} get-secret-value --name "${secretName}" --json`);
-                    stdout = result.stdout;
-                } catch (nameError) {
-                    throw pathError; // Throw original error
-                }
-            }
+            const { stdout } = await execFirstSuccessful(
+                execAsync,
+                buildGetSecretValueCommands(akeylessPath, secretName),
+                'get-secret-value'
+            );
             
             const data = JSON.parse(stdout);
             
@@ -275,13 +286,12 @@ export class AkeylessCLI {
                 throw new Error('Akeyless CLI not found. Please install it first: https://docs.akeyless.io/docs/install-akeyless-cli');
             }
             
-            // Use CLI to create static secret (correct command)
-            // Escape the secret value to handle special characters
-            const escapedValue = secretValue.replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
-            const command = `${akeylessPath} create-secret --name "${secretName}" --value "${escapedValue}" --json`;
-            logger.info(` Executing CLI command: ${command}`);
-            
-            const { stdout } = await execAsync(command);
+            const { stdout } = await execFirstSuccessful(
+                execAsync,
+                buildCreateSecretCommands(akeylessPath, secretName, secretValue),
+                'create-secret'
+            );
+            logger.info(` create-static-secret: succeeded with one of the CLI variants`);
             const data = JSON.parse(stdout);
             
             logger.info(` Static secret created successfully: ${secretName}`);
@@ -289,6 +299,37 @@ export class AkeylessCLI {
         } catch (error) {
             logger.error(' Failed to create static secret:', error);
             throw new Error(`Failed to create static secret: ${error}`);
+        }
+    }
+
+    /**
+     * Updates an existing static secret value using CLI
+     */
+    async updateStaticSecret(secretName: string, secretValue: string): Promise<any> {
+        try {
+            logger.info(` Updating static secret: ${secretName}`);
+
+            const akeylessPath = 'akeyless';
+
+            try {
+                await execAsync(`${akeylessPath} --version`);
+            } catch (error) {
+                throw new Error('Akeyless CLI not found. Please install it first: https://docs.akeyless.io/docs/install-akeyless-cli');
+            }
+
+            const { stdout } = await execFirstSuccessful(
+                execAsync,
+                buildUpdateSecretCommands(akeylessPath, secretName, secretValue),
+                'update-secret-val'
+            );
+            logger.info(` update-static-secret: succeeded with one of the CLI variants`);
+            const data = JSON.parse(stdout);
+
+            logger.info(` Static secret updated successfully: ${secretName}`);
+            return data;
+        } catch (error) {
+            logger.error(' Failed to update static secret:', error);
+            throw new Error(`Failed to update static secret: ${error}`);
         }
     }
 

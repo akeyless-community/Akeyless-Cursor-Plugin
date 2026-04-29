@@ -2,6 +2,16 @@ import { IAkeylessRepository } from '../../core/interfaces/IAkeylessRepository';
 import { AkeylessItem } from '../../types';
 import { RepositoryError } from '../../core/errors';
 import { logger } from '../../utils/logger';
+import {
+    augmentListItemsFailureMessage,
+    buildCreateSecretCommands,
+    buildDeleteItemCommands,
+    buildGetSecretValueCommands,
+    buildUpdateSecretCommands,
+    execFirstSuccessful,
+    normalizeListItemsNextPage,
+    warnIfCliBelowListItemsMinimum,
+} from '../../utils/akeylessCliCompat';
 import { promisify } from 'util';
 import { exec, ExecOptions } from 'child_process';
 
@@ -32,7 +42,11 @@ export class AkeylessRepository implements IAkeylessRepository {
             
             // Check if akeyless CLI is available
             await this.verifyCLIAvailable();
-            
+            await warnIfCliBelowListItemsMinimum(async () => {
+                const { stdout, stderr } = await this.execAsync(`${this.akeylessPath} --version`);
+                return stdout + stderr;
+            });
+
             const allItems: AkeylessItem[] = [];
             let nextPage: string | null = null;
             let pageCount = 0;
@@ -48,7 +62,7 @@ export class AkeylessRepository implements IAkeylessRepository {
                     const response = JSON.parse(stdout);
                     const items: AkeylessItem[] = response.items || [];
                     allItems.push(...items);
-                    nextPage = response.next_page_token || null;
+                    nextPage = normalizeListItemsNextPage(response);
                 } catch (parseError) {
                     logger.error('Failed to parse Akeyless CLI response:', parseError);
                     throw new RepositoryError('Failed to parse Akeyless CLI response');
@@ -61,15 +75,19 @@ export class AkeylessRepository implements IAkeylessRepository {
             if (error instanceof RepositoryError) {
                 throw error;
             }
-            throw new RepositoryError(`Failed to list items: ${error instanceof Error ? error.message : String(error)}`);
+            const msg = error instanceof Error ? error.message : String(error);
+            throw new RepositoryError(augmentListItemsFailureMessage(`Failed to list items: ${msg}`));
         }
     }
 
     async getSecretValue(path: string): Promise<string> {
         try {
             logger.info(`Getting secret value for path: ${path}`);
-            const command = `${this.akeylessPath} get-secret-value --path "${path}" --json`;
-            const { stdout } = await this.execAsync(command);
+            const { stdout } = await execFirstSuccessful(
+                this.execAsync,
+                buildGetSecretValueCommands(this.akeylessPath, path),
+                'get-secret-value'
+            );
             
             try {
                 const response = JSON.parse(stdout);
@@ -106,11 +124,14 @@ export class AkeylessRepository implements IAkeylessRepository {
         }
     }
 
-    async createSecret(path: string, value: string, itemType: string = 'STATIC_SECRET'): Promise<void> {
+    async createSecret(path: string, value: string, _itemType: string = 'STATIC_SECRET'): Promise<void> {
         try {
             logger.info(`Creating secret at path: ${path}`);
-            const command = `${this.akeylessPath} create-secret --path "${path}" --value "${value}" --type ${itemType} --json`;
-            await this.execAsync(command);
+            await execFirstSuccessful(
+                this.execAsync,
+                buildCreateSecretCommands(this.akeylessPath, path, value),
+                'create-secret'
+            );
             logger.info(`Secret created successfully at: ${path}`);
         } catch (error) {
             throw new RepositoryError(`Failed to create secret: ${error instanceof Error ? error.message : String(error)}`);
@@ -120,8 +141,11 @@ export class AkeylessRepository implements IAkeylessRepository {
     async updateSecret(path: string, value: string): Promise<void> {
         try {
             logger.info(`Updating secret at path: ${path}`);
-            const command = `${this.akeylessPath} update-secret-value --path "${path}" --value "${value}" --json`;
-            await this.execAsync(command);
+            await execFirstSuccessful(
+                this.execAsync,
+                buildUpdateSecretCommands(this.akeylessPath, path, value),
+                'update-secret'
+            );
             logger.info(`Secret updated successfully at: ${path}`);
         } catch (error) {
             throw new RepositoryError(`Failed to update secret: ${error instanceof Error ? error.message : String(error)}`);
@@ -131,8 +155,11 @@ export class AkeylessRepository implements IAkeylessRepository {
     async deleteSecret(path: string): Promise<void> {
         try {
             logger.info(`Deleting secret at path: ${path}`);
-            const command = `${this.akeylessPath} delete-item --path "${path}" --json`;
-            await this.execAsync(command);
+            await execFirstSuccessful(
+                this.execAsync,
+                buildDeleteItemCommands(this.akeylessPath, path),
+                'delete-item'
+            );
             logger.info(`Secret deleted successfully at: ${path}`);
         } catch (error) {
             throw new RepositoryError(`Failed to delete secret: ${error instanceof Error ? error.message : String(error)}`);
@@ -158,6 +185,10 @@ export class AkeylessRepository implements IAkeylessRepository {
     async listItemsPage(paginationToken?: string): Promise<{ items: AkeylessItem[], nextPage: string | null }> {
         try {
             logger.info(`Fetching page with token: ${paginationToken || 'none'}`);
+            await warnIfCliBelowListItemsMinimum(async () => {
+                const { stdout, stderr } = await this.execAsync(`${this.akeylessPath} --version`);
+                return stdout + stderr;
+            });
             const command = this.buildListCommand(paginationToken || null);
             const { stdout } = await this.execAsync(command);
             
@@ -170,7 +201,7 @@ export class AkeylessRepository implements IAkeylessRepository {
                 
                 return {
                     items: filteredItems,
-                    nextPage: data.next_page || null
+                    nextPage: normalizeListItemsNextPage(data),
                 };
             } catch (parseError) {
                 throw new RepositoryError('Failed to parse Akeyless CLI response');
@@ -179,7 +210,8 @@ export class AkeylessRepository implements IAkeylessRepository {
             if (error instanceof RepositoryError) {
                 throw error;
             }
-            throw new RepositoryError(`Failed to list items page: ${error instanceof Error ? error.message : String(error)}`);
+            const msg = error instanceof Error ? error.message : String(error);
+            throw new RepositoryError(augmentListItemsFailureMessage(`Failed to list items page: ${msg}`));
         }
     }
 

@@ -84,9 +84,13 @@ export class AkeylessCLIAdapter implements IAkeylessRepository {
     }
 
     async updateSecret(path: string, value: string): Promise<void> {
-        // AkeylessCLI doesn't have update method, so we'll create a new one
-        // In a real scenario, you'd add update method to AkeylessCLI or use repository directly
-        await this.createSecret(path, value);
+        try {
+            await this.akeylessCLI.updateStaticSecret(path, value);
+        } catch (error) {
+            throw new RepositoryError(
+                `Failed to update secret: ${error instanceof Error ? error.message : String(error)}`
+            );
+        }
     }
 
     async deleteSecret(_path: string): Promise<void> {
