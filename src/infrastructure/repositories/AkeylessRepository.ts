@@ -8,6 +8,7 @@ import {
     buildDeleteItemCommands,
     buildGetSecretValueCommands,
     buildUpdateSecretCommands,
+    escapeShellDoubleQuotedArg,
     execFirstSuccessful,
     normalizeListItemsNextPage,
     warnIfCliBelowListItemsMinimum,
@@ -221,7 +222,8 @@ export class AkeylessRepository implements IAkeylessRepository {
     async getDynamicSecretValue(secretName: string): Promise<any> {
         try {
             logger.info(`Getting dynamic secret value for: ${secretName}`);
-            const command = `${this.akeylessPath} get-dynamic-secret-value --name "${secretName}" --json`;
+            const e = escapeShellDoubleQuotedArg(secretName);
+            const command = `${this.akeylessPath} get-dynamic-secret-value --name "${e}" --json`;
             const { stdout } = await this.execAsync(command);
             return JSON.parse(stdout);
         } catch (error) {
@@ -235,7 +237,8 @@ export class AkeylessRepository implements IAkeylessRepository {
     async getRotatedSecretValue(secretName: string): Promise<any> {
         try {
             logger.info(`Getting rotated secret value for: ${secretName}`);
-            const command = `${this.akeylessPath} get-rotated-secret-value --name "${secretName}" --json`;
+            const e = escapeShellDoubleQuotedArg(secretName);
+            const command = `${this.akeylessPath} get-rotated-secret-value --name "${e}" --json`;
             const { stdout } = await this.execAsync(command);
             return JSON.parse(stdout);
         } catch (error) {

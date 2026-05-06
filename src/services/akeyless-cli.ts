@@ -5,6 +5,7 @@ import {
     buildCreateSecretCommands,
     buildGetSecretValueCommands,
     buildUpdateSecretCommands,
+    escapeShellDoubleQuotedArg,
     execFirstSuccessful,
     normalizeListItemsNextPage,
     warnIfCliBelowListItemsMinimum,
@@ -228,8 +229,8 @@ export class AkeylessCLI {
                 throw new Error('Akeyless CLI not found. Please install it first: https://docs.akeyless.io/docs/install-akeyless-cli');
             }
             
-            // Use CLI directly to get dynamic secret value
-            const { stdout } = await execAsync(`${akeylessPath} get-dynamic-secret-value --name "${secretName}" --json`);
+            const dn = escapeShellDoubleQuotedArg(secretName);
+            const { stdout } = await execAsync(`${akeylessPath} get-dynamic-secret-value --name "${dn}" --json`);
             const data = JSON.parse(stdout);
             
             logger.info(` Dynamic secret value retrieved successfully`);
@@ -257,8 +258,8 @@ export class AkeylessCLI {
                 throw new Error('Akeyless CLI not found. Please install it first: https://docs.akeyless.io/docs/install-akeyless-cli');
             }
             
-            // Use CLI directly to get rotated secret value
-            const { stdout } = await execAsync(`${akeylessPath} get-rotated-secret-value --name "${secretName}" --json`);
+            const rn = escapeShellDoubleQuotedArg(secretName);
+            const { stdout } = await execAsync(`${akeylessPath} get-rotated-secret-value --name "${rn}" --json`);
             const data = JSON.parse(stdout);
             
             logger.info(` Rotated secret value retrieved successfully`);

@@ -54,7 +54,7 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
         
         try {
             const tokenParam = this.nextPageToken ? `--pagination-token "${this.nextPageToken}"` : '';
-            logger.info(`Making CLI call: akeyless list-items --json ${tokenParam}`);
+            logger.info(`Loading secrets page ${tokenParam ? `(pagination)` : '(first page)'}`);
             
             const result = await this.akeylessCLI.listItemsPage(this.nextPageToken || undefined);
             

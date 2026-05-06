@@ -117,27 +117,22 @@ export function buildGetSecretValueCommands(akeylessPath: string, itemPath: stri
 export function buildCreateSecretCommands(akeylessPath: string, itemPath: string, value: string): string[] {
     const pe = escapeShellDoubleQuotedArg(itemPath);
     const ve = escapeShellDoubleQuotedArg(value);
+    // Matches `akeyless create-secret --help`: -n/--name, -v/--value, --type (default generic), --json
     return [
         `${akeylessPath} create-secret --name "${pe}" --value "${ve}" --type generic --json`,
         `${akeylessPath} create-secret --name "${pe}" --value "${ve}" --json`,
-        `${akeylessPath} create-secret --path "${pe}" --value "${ve}" --type generic --json`,
-        `${akeylessPath} create-secret --path "${pe}" --value "${ve}" --json`,
     ];
 }
 
 export function buildUpdateSecretCommands(akeylessPath: string, itemPath: string, value: string): string[] {
     const pe = escapeShellDoubleQuotedArg(itemPath);
     const ve = escapeShellDoubleQuotedArg(value);
-    return [
-        `${akeylessPath} update-secret-val --name "${pe}" --value "${ve}" --json`,
-        `${akeylessPath} update-secret-value --name "${pe}" --value "${ve}" --json`,
-    ];
+    // CLI defines `update-secret-val`, not `update-secret-value` (see `akeyless update-secret-val --help`)
+    return [`${akeylessPath} update-secret-val --name "${pe}" --value "${ve}" --json`];
 }
 
 export function buildDeleteItemCommands(akeylessPath: string, itemPath: string): string[] {
     const e = escapeShellDoubleQuotedArg(itemPath);
-    return [
-        `${akeylessPath} delete-item --name "${e}" --json`,
-        `${akeylessPath} delete-item --path "${e}" --json`,
-    ];
+    // `akeyless delete-item --help`: item is `-n, --name` only (no `--path` in current CLI)
+    return [`${akeylessPath} delete-item --name "${e}" --json`];
 }
