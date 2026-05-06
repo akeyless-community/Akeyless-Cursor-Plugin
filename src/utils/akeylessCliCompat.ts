@@ -110,10 +110,8 @@ export async function execFirstSuccessful(
 
 export function buildGetSecretValueCommands(akeylessPath: string, itemPath: string): string[] {
     const e = escapeShellDoubleQuotedArg(itemPath);
-    return [
-        `${akeylessPath} get-secret-value --name "${e}" --json`,
-        `${akeylessPath} get-secret-value --path "${e}" --json`,
-    ];
+    // Current Akeyless CLI uses --name/-n only; --path is not supported for get-secret-value
+    return [`${akeylessPath} get-secret-value --name "${e}" --json`];
 }
 
 export function buildCreateSecretCommands(akeylessPath: string, itemPath: string, value: string): string[] {

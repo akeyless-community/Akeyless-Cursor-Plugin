@@ -219,8 +219,8 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
                         if (existingFolder) {
                             if (i === folderPath.length - 1) {
                                 // This is the final folder level, add the item here
+                                // Keep full vault path in item_name for CLI/API (copy, get value); label uses extractSecretName()
                                 const childItem = { ...item.item };
-                                childItem.item_name = itemName;
                                 const childTreeItem = new SecretTreeItem(childItem, { type: STATUS_TYPES.SUCCESS } as TreeItemStatus);
                                 folderMap.get(normalizedCurrentPath)!.push(childTreeItem);
                             } else {
@@ -251,7 +251,6 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
                     if (i === folderPath.length - 1) {
                         // This is the final folder level, add the item here
                         const childItem = { ...item.item };
-                        childItem.item_name = itemName;
                         const childTreeItem = new SecretTreeItem(childItem, { type: STATUS_TYPES.SUCCESS } as TreeItemStatus);
                         folderMap.get(normalizedCurrentPath)!.push(childTreeItem);
                     } else {
@@ -327,7 +326,6 @@ export class SecretsTreeProvider implements vscode.TreeDataProvider<SecretTreeIt
                 if (remainingPath.length === 1) {
                     // This is a direct child (secret item)
                     const childItem = { ...item.item };
-                    childItem.item_name = itemName;
                     
                     // Use full item path as key to ensure uniqueness
                     const uniqueKey = `ITEM:${normalizedFolderPathClean}/${itemName}`;
