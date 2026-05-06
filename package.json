@@ -78,6 +78,26 @@
     "configuration": {
       "title": "Akeyless Secrets Manager",
       "properties": {
+        "akeyless.cliProfile": {
+          "type": "string",
+          "default": "default",
+          "description": "CLI profile for `akeyless get-secret-value --profile`. Customer-fragment (custom key) secrets require the Default Gateway URL on this profile: run `akeyless configure --profile <name> --gateway-url https://<your-gateway>/`."
+        },
+        "akeyless.autoConfigureGateway": {
+          "type": "boolean",
+          "default": true,
+          "description": "For secrets with a custom protection key, run `akeyless describe-item --gateway-details` to discover the Gateway cluster URL and update your CLI profile (`akeyless configure --gateway-url`) before fetching the value."
+        },
+        "akeyless.gatewayUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Gateway cluster HTTPS URL for custom-key static secrets (same URL as in Akeyless Console → Gateways → cluster, NOT an AWS execute-api / Console proxy URL). When set, overrides discovery from describe-item and is applied to your CLI profile via configure."
+        },
+        "akeyless.apiEndpoint": {
+          "type": "string",
+          "default": "",
+          "description": "Akeyless API/vault endpoint for custom-key REST flow (e.g. https://api.akeyless.io, https://api.eu.akeyless.io). Leave empty for global SaaS. Only needed for EU/DBK/custom tenants."
+        },
         "akeyless.diagnostics.enableProblemsTab": {
           "type": "boolean",
           "default": true,

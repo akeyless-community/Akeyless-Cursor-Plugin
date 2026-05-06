@@ -11,9 +11,10 @@ export interface IAkeylessRepository {
     listItems(): Promise<AkeylessItem[]>;
 
     /**
-     * Gets a secret value by path
+     * Gets a secret value by path.
+     * Pass `item` when available so the CLI can use `--profile`, `--accessibility`, and better errors for gateway/custom-key secrets.
      */
-    getSecretValue(path: string): Promise<string>;
+    getSecretValue(path: string, options?: { item?: AkeylessItem }): Promise<string>;
 
     /**
      * Creates a new secret in Akeyless

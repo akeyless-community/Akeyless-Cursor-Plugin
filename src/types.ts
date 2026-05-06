@@ -1,6 +1,8 @@
 export interface AkeylessItem {
     item_name: string;
     item_id: number;
+    /** 0 = regular, 1 = personal — forwarded to CLI `--accessibility` when set */
+    item_accessibility?: number;
     display_id: string;
     item_type: string;
     item_sub_type: string;

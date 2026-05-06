@@ -108,10 +108,29 @@ export async function execFirstSuccessful(
     throw lastErr ?? new Error(`${operationLabel}: all CLI variants failed`);
 }
 
-export function buildGetSecretValueCommands(akeylessPath: string, itemPath: string): string[] {
+/** Options forwarded to `akeyless get-secret-value` (customer-fragment secrets need correct profile + gateway on that profile). */
+export interface GetSecretValueCliOpts {
+    profile?: string;
+    /** From list-items `item_accessibility`: 0 → regular, 1 → personal */
+    itemAccessibility?: number;
+}
+
+export function buildGetSecretValueCommands(
+    akeylessPath: string,
+    itemPath: string,
+    opts?: GetSecretValueCliOpts
+): string[] {
     const e = escapeShellDoubleQuotedArg(itemPath);
-    // Current Akeyless CLI uses --name/-n only; --path is not supported for get-secret-value
-    return [`${akeylessPath} get-secret-value --name "${e}" --json`];
+    const parts: string[] = [akeylessPath, 'get-secret-value'];
+    if (opts?.profile?.trim()) {
+        parts.push('--profile', `"${escapeShellDoubleQuotedArg(opts.profile.trim())}"`);
+    }
+    parts.push('--name', `"${e}"`);
+    if (opts?.itemAccessibility === 1) {
+        parts.push('--accessibility', 'personal');
+    }
+    parts.push('--json');
+    return [parts.join(' ')];
 }
 
 export function buildCreateSecretCommands(akeylessPath: string, itemPath: string, value: string): string[] {

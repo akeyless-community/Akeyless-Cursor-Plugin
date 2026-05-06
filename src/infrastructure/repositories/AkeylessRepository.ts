@@ -81,12 +81,16 @@ export class AkeylessRepository implements IAkeylessRepository {
         }
     }
 
-    async getSecretValue(path: string): Promise<string> {
+    async getSecretValue(path: string, options?: { item?: AkeylessItem }): Promise<string> {
         try {
             logger.info(`Getting secret value for path: ${path}`);
+            const ia =
+                options?.item && typeof options.item.item_accessibility === 'number'
+                    ? options.item.item_accessibility
+                    : undefined;
             const { stdout } = await execFirstSuccessful(
                 this.execAsync,
-                buildGetSecretValueCommands(this.akeylessPath, path),
+                buildGetSecretValueCommands(this.akeylessPath, path, { itemAccessibility: ia }),
                 'get-secret-value'
             );
             

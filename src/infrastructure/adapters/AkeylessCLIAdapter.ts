@@ -1,8 +1,11 @@
+import * as vscode from 'vscode';
 import { IAkeylessRepository } from '../../core/interfaces/IAkeylessRepository';
 import { AkeylessItem } from '../../types';
 import { AkeylessCLI } from '../../services/akeyless-cli';
 import { RepositoryError } from '../../core/errors';
 import { logger } from '../../utils/logger';
+import { customerFragmentCliHint } from '../../utils/gatewayHints';
+import { getSecretValueViaRest } from '../../services/akeylessRestClient';
 
 /**
  * Adapter Pattern: Bridges old AkeylessCLI to new IAkeylessRepository interface
@@ -23,31 +26,57 @@ export class AkeylessCLIAdapter implements IAkeylessRepository {
         }
     }
 
-    async getSecretValue(path: string): Promise<string> {
+    async getSecretValue(path: string, options?: { item?: AkeylessItem }): Promise<string> {
+        const cfg = vscode.workspace.getConfiguration('akeyless');
+        const profile = cfg.get<string>('cliProfile', 'default');
+        const item = options?.item;
+        const cliOpts = {
+            profile: profile.trim() || undefined,
+            itemAccessibility:
+                item && typeof item.item_accessibility === 'number' ? item.item_accessibility : undefined,
+        };
+
+        // Custom-protection-key secrets: use REST flow (vault + gateway) first,
+        // matching the browser extension's proven path. Falls back to CLI on error.
+        if (item?.with_customer_fragment) {
+            logger.info(
+                'Custom protection key detected — using REST flow (secret-access-creds → get-gw-basic-info → derived-key → decrypt)'
+            );
+            try {
+                const apiEndpoint = cfg.get<string>('apiEndpoint')?.trim() || undefined;
+                return await getSecretValueViaRest({
+                    secretName: path,
+                    profile: profile.trim() || 'default',
+                    itemAccessibility:
+                        typeof item.item_accessibility === 'number' ? item.item_accessibility : 0,
+                    itemId: item.item_id || undefined,
+                    apiEndpoint,
+                });
+            } catch (restErr) {
+                const restMsg = restErr instanceof Error ? restErr.message : String(restErr);
+                logger.warn(`REST custom-key flow failed (will try CLI fallback): ${restMsg}`);
+            }
+        }
+
         try {
-            const result = await this.akeylessCLI.getSecretValue(path);
-            
-            // Handle different response formats from Akeyless CLI
+            logger.info(`Calling CLI get-secret-value for: ${path}`);
+            const result = await this.akeylessCLI.getSecretValue(path, cliOpts);
+
             if (typeof result === 'string') {
                 return result;
             }
-            
+
             if (result && typeof result === 'object') {
-                // Try common property names for the secret value
                 if (result.value !== undefined) {
-                    // If value is a string, return it directly
                     if (typeof result.value === 'string') {
                         return result.value;
                     }
-                    // If value is an object, stringify it properly with formatting
                     if (typeof result.value === 'object') {
                         return JSON.stringify(result.value, null, 2);
                     }
-                    // For other types, convert to string
                     return String(result.value);
                 }
-                
-                // If it's a simple object with string values, try to extract the first meaningful value
+
                 for (const key of ['secret', 'data', 'content']) {
                     if (result[key] !== undefined) {
                         const value = result[key];
@@ -60,16 +89,17 @@ export class AkeylessCLIAdapter implements IAkeylessRepository {
                         return String(value);
                     }
                 }
-                
-                // Last resort: stringify the entire object with formatting
+
                 return JSON.stringify(result, null, 2);
             }
-            
+
             return String(result || '');
         } catch (error) {
-            throw new RepositoryError(
-                `Failed to get secret value: ${error instanceof Error ? error.message : String(error)}`
-            );
+            let msg = error instanceof Error ? error.message : String(error);
+            if (item?.with_customer_fragment) {
+                msg += customerFragmentCliHint(profile, item.gateway_details);
+            }
+            throw new RepositoryError(`Failed to get secret value: ${msg}`);
         }
     }
 

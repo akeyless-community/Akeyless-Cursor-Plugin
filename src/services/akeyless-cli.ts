@@ -7,11 +7,14 @@ import {
     buildUpdateSecretCommands,
     escapeShellDoubleQuotedArg,
     execFirstSuccessful,
+    GetSecretValueCliOpts,
     normalizeListItemsNextPage,
     warnIfCliBelowListItemsMinimum,
 } from '../utils/akeylessCliCompat';
 import { promisify } from 'util';
-import { exec, ExecOptions } from 'child_process';
+import { exec, execFile, ExecOptions } from 'child_process';
+
+const execFileAsync = promisify(execFile);
 
 // Create exec function with increased maxBuffer to handle large secret lists
 const execWithBuffer = (command: string, options?: ExecOptions) => {
@@ -22,6 +25,13 @@ const execWithBuffer = (command: string, options?: ExecOptions) => {
 };
 
 const execAsync = execWithBuffer;
+
+/** Max time for single secret-fetch CLI ops (describe-item / configure / get-secret-value). Avoids indefinite hang. */
+const CLI_FETCH_TIMEOUT_MS = 180_000;
+
+function execFetch(command: string): Promise<{ stdout: string; stderr: string }> {
+    return execWithBuffer(command, { timeout: CLI_FETCH_TIMEOUT_MS });
+}
 
 export class AkeylessCLI {
     constructor() {
@@ -180,9 +190,104 @@ export class AkeylessCLI {
     }
 
     /**
+     * Lists Gateway clusters for the account (`cluster_url`, `customer_fragments`).
+     * Prefer this over describe-item when resolving Default Gateway URL for custom-key secrets.
+     */
+    async listGateways(profile?: string): Promise<unknown> {
+        logger.info(`CLI: list-gateways (timeout ${CLI_FETCH_TIMEOUT_MS / 1000}s)`);
+        const args = ['list-gateways', '--json'];
+        if (profile?.trim()) {
+            args.push('--profile', profile.trim());
+        }
+        try {
+            const { stdout } = await execFileAsync('akeyless', args, {
+                timeout: CLI_FETCH_TIMEOUT_MS,
+                maxBuffer: 50 * 1024 * 1024,
+            });
+            logger.info('CLI: list-gateways completed');
+            return JSON.parse(stdout);
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            if (msg.includes('timeout') || msg.includes('ETIMEDOUT')) {
+                throw new Error(
+                    `list-gateways timed out after ${CLI_FETCH_TIMEOUT_MS / 1000}s. ${msg}`
+                );
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Item details including gateway cluster URL (`--gateway-details`).
+     */
+    async describeItemWithGatewayDetails(secretName: string, cliOpts?: GetSecretValueCliOpts): Promise<unknown> {
+        const akeylessPath = 'akeyless';
+        await execAsync(`${akeylessPath} --version`);
+        const n = escapeShellDoubleQuotedArg(secretName);
+        const parts: string[] = [
+            akeylessPath,
+            'describe-item',
+            '--name',
+            `"${n}"`,
+            '--gateway-details=true',
+            '--json',
+        ];
+        if (cliOpts?.profile?.trim()) {
+            parts.push('--profile', `"${escapeShellDoubleQuotedArg(cliOpts.profile.trim())}"`);
+        }
+        if (cliOpts?.itemAccessibility === 1) {
+            parts.push('--accessibility', 'personal');
+        }
+        const cmd = parts.join(' ');
+        logger.info(
+            `CLI: describe-item --gateway-details (timeout ${CLI_FETCH_TIMEOUT_MS / 1000}s) — ${secretName}`
+        );
+        try {
+            const { stdout } = await execFetch(cmd);
+            logger.info('CLI: describe-item completed');
+            return JSON.parse(stdout);
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            if (msg.includes('timeout') || msg.includes('ETIMEDOUT')) {
+                throw new Error(
+                    `describe-item timed out after ${CLI_FETCH_TIMEOUT_MS / 1000}s (network/gateway?). ${msg}`
+                );
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Sets Default Gateway URL on the CLI profile (same as `akeyless configure --gateway-url`).
+     */
+    async configureGatewayUrl(profile: string, gatewayUrl: string): Promise<void> {
+        logger.info(`CLI: configure --gateway-url for profile "${profile}"`);
+        try {
+            // execFile (no shell) avoids hangs from stdin/TTY quirks that affect some `exec` shells.
+            await execFileAsync(
+                'akeyless',
+                ['configure', '--profile', profile, '--gateway-url', gatewayUrl, '--json'],
+                {
+                    timeout: CLI_FETCH_TIMEOUT_MS,
+                    maxBuffer: 50 * 1024 * 1024,
+                }
+            );
+            logger.info('CLI: configure --gateway-url completed');
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            if (msg.includes('timeout') || msg.includes('ETIMEDOUT')) {
+                throw new Error(
+                    `configure --gateway-url timed out after ${CLI_FETCH_TIMEOUT_MS / 1000}s. ${msg}`
+                );
+            }
+            throw e;
+        }
+    }
+
+    /**
      * Gets the value of a specific secret using CLI directly
      */
-    async getSecretValue(secretName: string): Promise<any> {
+    async getSecretValue(secretName: string, cliOpts?: GetSecretValueCliOpts): Promise<any> {
         try {
             logger.info(` Getting secret value for: ${secretName}`);
             
@@ -196,9 +301,12 @@ export class AkeylessCLI {
                 throw new Error('Akeyless CLI not found. Please install it first: https://docs.akeyless.io/docs/install-akeyless-cli');
             }
             
+            logger.info(
+                `CLI: get-secret-value (timeout ${CLI_FETCH_TIMEOUT_MS / 1000}s) — ${secretName}`
+            );
             const { stdout } = await execFirstSuccessful(
-                execAsync,
-                buildGetSecretValueCommands(akeylessPath, secretName),
+                execFetch,
+                buildGetSecretValueCommands(akeylessPath, secretName, cliOpts),
                 'get-secret-value'
             );
             
@@ -208,6 +316,12 @@ export class AkeylessCLI {
             return data;
         } catch (error) {
             logger.error(' Failed to get secret value from CLI:', error);
+            const msg = error instanceof Error ? error.message : String(error);
+            if (msg.includes('timeout') || msg.includes('ETIMEDOUT')) {
+                throw new Error(
+                    `Failed to get secret value: CLI timed out after ${CLI_FETCH_TIMEOUT_MS / 1000}s (check VPN/network/gateway). ${msg}`
+                );
+            }
             throw new Error(`Failed to get secret value: ${error}`);
         }
     }
