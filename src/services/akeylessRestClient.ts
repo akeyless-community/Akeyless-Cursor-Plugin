@@ -13,6 +13,9 @@
 import { logger } from '../utils/logger';
 import { promisify } from 'util';
 import { execFile } from 'child_process';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 
 const execFileAsync = promisify(execFile);
 
@@ -42,23 +45,89 @@ function timeoutSignal(ms: number): AbortSignal {
 }
 
 // ---------------------------------------------------------------------------
-// Token helpers
+// Token / credential helpers
 // ---------------------------------------------------------------------------
 
-/** Get a short-lived API token via `akeyless auth --profile <p> --json`. */
-export async function getTokenFromCliProfile(profile: string): Promise<string> {
+interface CachedCreds {
+    /** Short CLI token (used for gateway Bearer auth) */
+    token: string;
+    /** UAM JWT used for vault UAM headers (akeylessuam-accesscreds) */
+    uamCreds: string;
+    /** Auth creds JWT — fallback for vault if uamCreds is empty */
+    authCreds: string;
+}
+
+/**
+ * Read cached credentials from `~/.akeyless/.tmp_creds/<profile>-<access_id>`.
+ * The CLI writes this file on every successful `akeyless auth`.
+ * Returns undefined when the file is missing, unreadable, or expired.
+ */
+function readCachedCreds(profile: string): CachedCreds | undefined {
+    const profileName = profile.trim() || 'default';
+    const profFile = path.join(os.homedir(), '.akeyless', 'profiles', `${profileName}.toml`);
+    let accessId = '';
+    try {
+        const toml = fs.readFileSync(profFile, 'utf8');
+        const m = toml.match(/access_id\s*=\s*['"]([^'"]*)['"]/);
+        accessId = m?.[1]?.trim() || '';
+    } catch {
+        return undefined;
+    }
+    if (!accessId) {
+        return undefined;
+    }
+
+    const credsFile = path.join(os.homedir(), '.akeyless', '.tmp_creds', `${profileName}-${accessId}`);
+    try {
+        const raw = fs.readFileSync(credsFile, 'utf8');
+        const data = JSON.parse(raw);
+        const expiry = typeof data.expiry === 'number' ? data.expiry : 0;
+        if (expiry && expiry < Date.now() / 1000) {
+            logger.info('REST: cached credentials expired, will re-authenticate');
+            return undefined;
+        }
+        const token = (data.token || '') as string;
+        const uamCreds = (data.uam_creds || '') as string;
+        const authCreds = (data.auth_creds || '') as string;
+        if (!token && !uamCreds && !authCreds) {
+            return undefined;
+        }
+        return { token, uamCreds, authCreds };
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * Get credentials for the REST flow.
+ * Reads the CLI's cached token file first (instant, no subprocess).
+ * Falls back to `akeyless auth --profile` only when the cache is missing or expired.
+ */
+async function getCredsForProfile(profile: string): Promise<CachedCreds> {
+    const cached = readCachedCreds(profile);
+    if (cached) {
+        logger.info('REST: using cached CLI credentials (no re-auth needed)');
+        return cached;
+    }
+
     const prof = profile.trim() || 'default';
-    logger.info(`REST: obtaining API token via CLI auth --profile "${prof}"`);
+    logger.info(`REST: cached creds unavailable — running akeyless auth --profile "${prof}"`);
     const { stdout } = await execFileAsync('akeyless', ['auth', '--profile', prof, '--json'], {
         timeout: 60_000,
         maxBuffer: 10 * 1024 * 1024,
     });
     const data = JSON.parse(stdout);
-    const token: string | undefined = data.token ?? data.t;
-    if (!token) {
-        throw new Error('akeyless auth returned no token');
+
+    const fresh = readCachedCreds(profile);
+    if (fresh) {
+        return fresh;
     }
-    return token;
+
+    const token: string = data.token ?? data.t ?? '';
+    if (!token) {
+        throw new Error('akeyless auth returned no token and no cached creds found');
+    }
+    return { token, uamCreds: '', authCreds: '' };
 }
 
 // ---------------------------------------------------------------------------
@@ -259,12 +328,16 @@ export async function getSecretValueViaRest(opts: RestGetSecretOpts): Promise<st
         ? apiToVaultEndpoint(opts.apiEndpoint.replace(/\/+$/, ''))
         : DEFAULT_VAULT_ENDPOINT;
     logger.info(`REST: using vault endpoint ${vaultEndpoint}`);
-    const token = await getTokenFromCliProfile(opts.profile);
+    const creds = await getCredsForProfile(opts.profile);
+
+    // Vault UAM calls use uam_creds (or auth_creds fallback); gateway Bearer uses token
+    const vaultToken = creds.uamCreds || creds.authCreds || creds.token;
+    const gatewayBearerToken = creds.token || creds.uamCreds || creds.authCreds;
 
     // Step 1 — encrypted blob + derivation creds (vault, not API)
     const accessCreds = await vaultGetSecretAccessCreds(
         vaultEndpoint,
-        token,
+        vaultToken,
         opts.secretName,
         opts.itemAccessibility,
         opts.itemId
@@ -302,13 +375,13 @@ export async function getSecretValueViaRest(opts: RestGetSecretOpts): Promise<st
     // Step 2 — gateway cluster URL via vault
     const gatewayUrl = await vaultGetGwBasicInfo(
         vaultEndpoint,
-        token,
+        vaultToken,
         derivCreds.customer_fragment_id
     );
     logger.info(`REST: gateway cluster URL for fragment: ${gatewayUrl}`);
 
-    // Step 3 — derive key via gateway
-    const derivedKey = await gatewayDeriveKey(gatewayUrl, derivCreds, token);
+    // Step 3 — derive key via gateway (Bearer token, not UAM)
+    const derivedKey = await gatewayDeriveKey(gatewayUrl, derivCreds, gatewayBearerToken);
     logger.info('REST: derived key obtained from gateway');
 
     // Step 4 — client-side decryption
